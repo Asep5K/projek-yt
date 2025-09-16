@@ -5,7 +5,7 @@
 
 A lightweight Bash script with **Rofi menus** to download videos, music, or play content from YouTube. Supports playlists, multiple resolutions, and audio formats (MP3/FLAC).  
 
-🔗 GitHub Repository: https://github.com/Asep5K/projekbashshell
+🔗 GitHub Repository: https://github.com/Asep5K/projek-yt
 
 ---
 
