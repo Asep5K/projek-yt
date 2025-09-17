@@ -22,27 +22,49 @@
 theme1="$HOME/.config/rofi/themes/yt-dlp.rasi"
 theme2="$HOME/.config/rofi/themes/list.rasi"
 f="/var/lib/AccountsService/icons/$USER"
-export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:$PATH"
-vid_dir="$HOME/Videos/Downloads"
+
+ICON_SUCCESS_URL="https://pbs.twimg.com/profile_images/1937897644816265216/R9fhEWX3_400x400.jpg"
+ICON_FAIL_URL="https://pbs.twimg.com/media/Gzho6tiXUAAEXyj?format=jpg&name=medium"
+ICON_DIR="$HOME/.local/share/asep_icons"
+ICON_SUCCESS="$ICON_DIR/icon_success.jpg"
+ICON_FAIL="$ICON_DIR/icon_fail.jpg"
+
+# Pastikan folder ada
+[ ! -d "$ICON_DIR" ] && mkdir -p "$ICON_DIR"
+
+# Download ikon kalau belum ada
+[ ! -f "$ICON_SUCCESS" ] && wget -q -O "$ICON_SUCCESS" "$ICON_SUCCESS_URL"
+[ ! -f "$ICON_FAIL" ] && wget -q -O "$ICON_FAIL" "$ICON_FAIL_URL"
+
+trap 'pkill -P $$ mpv yt-dlp' EXIT
+
+check_internet() {
+    if ! ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+        notify-send -i "$ICON_FAIL" "❌ No Internet" "Please check your connection!"
+        exit 1
+    fi
+}
+
+# yt-dlp check
+if ! command -v yt-dlp >/dev/null 2>&1; then
+    # kalo ga ada, kirim notif
+    notify-send -i "$ICON_FAIL" "⚠ Warning" "yt-dlp not found!"
+    exit 1
+else
+    check_internet
+    # 📥 Input URL
+    url=$(rofi -dmenu -p "Enter YouTube URL:" -theme "$theme1")
+fi
 
 if pidof rofi > /dev/null; then
     pkill rofi
-fi
-
-
-# 📥 Input URL
-url=$(rofi -dmenu -p "Enter YouTube URL:" -theme "$theme1")
-
-if ! curl -Is https://youtube.com >/dev/null 2>&1; then
-    notify-send -i "$f" "❌ Error" "No Internet connection!"
-    exit 1
 fi
 
 # 🔎 Cek dan validasi URL
 if [ -z "$url" ]; then
     exit 0
 elif [[ ! "$url" =~ ^https?://(www\.)?(youtube\.com|youtu\.be)/ ]]; then
-    notify-send -i "$f" "Invalid URL" "Only YouTube links are allowed!"
+    notify-send -i "$ICON_FAIL" "Invalid URL" "Only YouTube links are allowed!"
     exit 1
 fi
 
@@ -51,14 +73,14 @@ options="Download Videos\nDownload Music\nPlay Music/Videos"
 choice=$(echo -e "$options" | rofi -dmenu -p "Select option:" -theme "$theme1")
 [ -z "$choice" ] && exit 0
 
-download() {
-    download_options="Download 240p\nDownload 360p\nDownload 480p\nDownload 720p\nDownload 1080p\nDownload 2K\nDownload 4K\nDownload 8K\nBest Quality Video\nChoose Resolution\nPlay Music/Videos\nExit"
+download_videos() {
+    download_options="Download 240p\nDownload 360p\nDownload 480p\nDownload 720p\nDownload 1080p\nDownload 2K\nDownload 4K\nBest Resolution\nExit"
     download_choice=$(echo -e "$download_options" | rofi -dmenu -p "Select option:" -theme "$theme1")
     [ -z "$download_choice" ] && exit 0
 }
 
 play() {
-    play_options="Play Music\nPlay 240p\nPlay 360p\nPlay 480p\nPlay 720p\nPlay 1080p\nPlay 2K\nPlay 4K\nPlay 8K\nPlay Best Video\nChoose your options\nDownload Music/Videos\nExit"
+    play_options="Play Music\nPlay 240p\nPlay 360p\nPlay 480p\nPlay 720p\nPlay 1080p\nPlay 2K\nPlay 4K\nBest Resolution\nExit"
     play_choice=$(echo -e "$play_options" | rofi -dmenu -p "Select option" -theme "$theme1")
     [ -z "$play_choice" ] && exit 0
 }
@@ -76,120 +98,106 @@ music() {
     outdir="$HOME/Music/Downloads"
     mkdir -p "$outdir"
     if [ "$1" = "mp3" ]; then
-        notify-send -i "$f" "Downloading..." "Audio MP3"
-        yt-dlp -x --audio-format mp3 \
-        -o "$outdir/$filename" \
-        "$url" && \
-        latest_music=$(ls -t "$outdir" | head -n 1) && \
-        notify-send -i "$f" "$latest_music" "Download complete"
-    elif [ "$1" = "Flac" ]; then
-        notify-send -i "$f" "Downloading..." "Audio Flac"
-        yt-dlp -x --audio-format flac \
-        -o "$outdir/$filename" \
-        "$url" && \
-        latest_music=$(ls -t "$outdir" | head -n 1) && \
-        notify-send -i "$f" "$latest_music" "Download complete"
-    elif [ "$1" = "Playlistmp3" ]; then
-         notify-send -i "$f" "Downloading Playlist Mp3"
-        yt-dlp --continue \
-        -f bestaudio -x --audio-format mp3 \
-        -o "$outdir/$playlistname" \
-        "$url" && \
-        latest_music=$(ls -t "$outdir" | head -n 1) && \
-        notify-send -i "$f" "$latest_music" "✔ Download Finished"
+        notify-send -i "$ICON_SUCCESS" "Downloading..." "Audio Mp3"
+        if yt-dlp -x --audio-format mp3 \
+            -o "$outdir/$filename" \
+            "$url"; then
+            latest_music=$(ls -t "$outdir" | head -n 1)
+            notify-send -i "$ICON_SUCCESS" "$latest_music" "Download complete"
+        else 
+            notify-send -i "$ICON_FAIL" "❌ Download Failed" "Check the URL or network"
+        fi
+    elif [ "$1" = "flac" ]; then
+        notify-send -i "$ICON_SUCCESS" "Downloading..." "Audio Flac"
+        if yt-dlp -x --audio-format flac \
+            -o "$outdir/$filename" \
+            "$url"; then
+            latest_music=$(ls -t "$outdir" | head -n 1)
+            notify-send -i "$ICON_SUCCESS" "$latest_music" "Download complete"
+        else 
+            notify-send -i "$ICON_FAIL" "❌ Download Failed" "Check the URL or network"
+        fi
+    elif [ "$1" = "playlistmp3" ]; then
+        notify-send -i "$ICON_SUCCESS" "Downloading Playlist Mp3"
+        if yt-dlp --continue \
+            -f bestaudio -x --audio-format mp3 \
+            -o "$outdir/$playlistname" \
+            "$url"; then
+            latest_music=$(ls -t "$outdir" | head -n 1)
+            notify-send -i "$ICON_SUCCESS" "$latest_music" "✔ Download Finished"
+        else
+            notify-send -i "$ICON_FAIL" "❌ Download Failed" "Check the URL or network"
+        fi
     else
-        notify-send -i "$f" "Downloading Playlist Flac"
-        yt-dlp --continue \
-        -f bestaudio -x --audio-format flac \
-        -o "$outdir/$playlistname" \
-        "$url" && \
-        latest_music=$(ls -t "$outdir" | head -n 1) && \
-        notify-send -i "$f" "$latest_music" "✔ Download Finished"
+        notify-send -i "$ICON_SUCCESS" "Downloading Playlist Flac"
+        if yt-dlp --continue \
+            -f bestaudio -x --audio-format flac \
+            -o "$outdir/$playlistname" \
+            "$url"; then
+            latest_music=$(ls -t "$outdir" | head -n 1)
+            notify-send -i "$ICON_SUCCESS" "$latest_music" "✔ Download Finished"
+        else 
+            notify-send -i "$ICON_FAIL" "❌ Download Failed" "Check the URL or network"
+        fi
     fi
 }
 
-down() {
-    res="$1"
+download() {
+    vid_dir="$HOME/Videos/Downloads"
     filename="%(title)s_%(height)sp.%(ext)s"
     mkdir -p "$vid_dir"
-
-    if [ "$res" = "best" ]; then
-        notify-send -i "$f" "Downloading..." "Best quality videos"
-        yt-dlp -f "bestvideo+bestaudio/best" --merge-output-format mp4 \
-        -o "$vid_dir/$filename" "$url" && \
-        latest_video=$(ls -t "$vid_dir" | head -n 1) && \
-        notify-send -i "$f" "✔ Download Finished" "$latest_video saved in $vid_dir"
+    if [ "$1" = "best" ]; then
+        notify-send -i "$ICON_SUCCESS" "Downloading..." "Best quality videos"
+        if yt-dlp -f "bestvideo+bestaudio/best" --merge-output-format mp4 \
+            -o "$vid_dir/$filename" "$url"; then
+            latest_video=$(ls -t "$vid_dir" | head -n 1)
+            notify-send -i "$ICON_SUCCESS" "✔ Download Finished" "$latest_video saved in $vid_dir"
+        else
+            notify-send -i "$ICON_FAIL" "❌ Download Failed" "Check the URL or network"
+        fi
     else
-        notify-send -i "$f" " Downloading..." "${res} auto fallback"
-        yt-dlp -f "bv[height<=$res]+bestaudio/best" \
-        -o "$vid_dir/$filename" "$url" && \
-        latest_video=$(ls -t "$vid_dir" | head -n 1) && \
-        notify-send -i "$f" "✔ Download Finished" "$latest_video saved in $vid_dir" 
+        notify-send -i "$ICON_SUCCESS" " Downloading..." "${1}p auto fallback"
+        if yt-dlp -f "bv[height<=$1]+bestaudio/best" \
+            -o "$vid_dir/$filename" "$url"; then
+            latest_video=$(ls -t "$vid_dir" | head -n 1)
+            notify-send -i "$ICON_SUCCESS" "✔ Download Finished" "$latest_video saved in $vid_dir"
+        else
+            notify-send -i "$ICON_FAIL" "❌ Download Failed" "Check the URL or network"
+        fi 
     fi
 }
 
 play_select() {
-    res="$1"
-    
-      if [ "$res" = "best" ]; then
+      if [ "$1" = "best" ]; then
             mpv "$url" & 
-            notify-send -i "$f" "Playing best video"
-        elif [ "$res" == "Music" ]; then
+            notify-send -i "$ICON_SUCCESS" "Playing best video"
+        elif [ "$1" == "music" ]; then
             mpv --no-video "$url" &
-            notify-send -i "$f" "Playing audio"
+            notify-send -i "$ICON_SUCCESS" "Playing audio"
         else    
-            mpv --ytdl-format="bestvideo[height=$res]+bestaudio/best" "$url" &
-            notify-send -i "$f" "Playing ${res}p"
+            mpv --ytdl-format="bv[height<=$1]+bestaudio/best" "$url" &
+            notify-send -i "$ICON_SUCCESS" "Playing ${1}p auto fallback"
       fi
-}
-
-choose_mode() {
-    mode="$1" # download / play
-    notify-send -i "$f" "Fetching..." "Available formats"
-    format=$(yt-dlp -F "$url" | awk '/^-/{flag=1; next} flag' | rofi -dmenu -p "Choose format:" -theme "$theme2")
-    [ -z "$format" ] && return 0
-
-    format_id=$(awk '{print $1}' <<< "$format")
-
-    if [ "$mode" = "download" ]; then
-        mkdir -p "$vid_dir"
-        filename="%(title)s_%(height)sp.%(ext)s"
-        notify-send -i "$f" "Downloading..." "Format $format_id"
-        yt-dlp -f "$format_id+bestaudio/best" \
-        -o "$vid_dir/$filename" \
-        "$url" && \
-        latest_video=$(ls -t "$vid_dir" | head -n 1) && \
-        notify-send -i "$f" "✔ Download Finished" "$latest_video saved in $vid_dir" 
-
-    elif [ "$mode" = "play" ]; then
-        notify-send -i "$f" "Playing format $format_id"
-        mpv --ytdl-format="$format_id+bestaudio/best" "$url" 
-    fi
 }
 
 if [ -n "$choice" ]; then
     if [ "$choice" = "Download Videos" ]; then
-        download
+        download_videos
         case "$download_choice" in
-            "Download MP3") music "mp3" ;;
-            "Download Flac") music "flac" ;;
-            "Download 240p") down 240 ;;
-            "Download 360p") down 360 ;;
-            "Download 480p") down 480 ;;
-            "Download 720p") down 720 ;;
-            "Download 1080p") down 1080 ;;
-            "Download 2K") down 1440 ;;
-            "Download 4K") down 2160 ;;
-            "Download 8K") down 4320 ;;
-            "Best Quality Video") down "best" ;;
-            "Choose Resolution") choose_mode "download" ;;
-            "Play Music/Videos") play ;;
+            "Download 240p") download 240 ;;
+            "Download 360p") download 360 ;;
+            "Download 480p") download 480 ;;
+            "Download 720p") download 720 ;;
+            "Download 1080p") download 1080 ;;
+            "Download 2K") download 1440 ;;
+            "Download 4K") download 2160 ;;
+            "Best Resolution") download "best" ;;
             "Exit") exit 0 ;;
          esac
     elif [ "$choice" = "Play Music/Videos" ]; then
             play
         case "$play_choice" in
-            "Play Music") play_select "Music" ;;
+            "Play Music") play_select "music" ;;
             "Play 240p") play_select 240 ;;
             "Play 360p") play_select 360 ;;
             "Play 480p") play_select 480 ;;
@@ -197,21 +205,17 @@ if [ -n "$choice" ]; then
             "Play 1080p") play_select 1080 ;; 
             "Play 2K") play_select 1440 ;;
             "Play 4K") play_select 2160 ;;
-            "Play 8K") play_select 4320 ;;
-            "Play Best Video") play_select "best" ;;
-            "Choose your options") choose_mode "play" ;;
-            "Download Music/Videos") download ;;
+            "Best Resolution") play_select "best" ;;
             "Exit") exit 0 ;;
         esac  
     elif [ "$choice" = "Download Music" ]; then
             music_download
         case "$music_choice" in
             "Download Mp3") music "mp3" ;;
-            "Download Playlist Mp3") music "Playlistmp3" ;;
-            "Download Flac") music "Flac" ;;
-            "Download Playlist Flac") music "Playlistflac";;
+            "Download Playlist Mp3") music "playlistmp3" ;;
+            "Download Flac") music "flac" ;;
+            "Download Playlist Flac") music "playlistflac";;
             "Exit") exit 0 ;;
         esac
-
     fi
 fi
