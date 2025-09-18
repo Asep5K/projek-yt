@@ -1,9 +1,13 @@
-# 🎬 YouTube Downloader & Player (Bash + Rofi)  
+# 🎬 YouTube Downloader & Player (Bash + yad)  
+
+[![Made with Bash](https://img.shields.io/badge/Made%20with-Bash-blue?logo=gnu-bash)](https://www.gnu.org/software/bash/)
+[![yt-dlp](https://img.shields.io/badge/yt--dlp-powered-orange)](https://github.com/yt-dlp/yt-dlp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
 > **Script created by Asep5K**
 
 
-A lightweight Bash script with **Rofi menus** to download videos, music, or play content from YouTube. Supports playlists, multiple resolutions, and audio formats (MP3/FLAC).  
+A lightweight Bash script with **yad menus** to download videos, music, or play content from YouTube. Supports playlists, multiple resolutions, and audio formats (MP3/FLAC).  
 
 🔗 GitHub Repository: https://github.com/Asep5K/projek-yt
 
@@ -16,7 +20,7 @@ A lightweight Bash script with **Rofi menus** to download videos, music, or play
 - Download audio only: MP3 or FLAC, single or playlist.  
 - Play videos or audio directly with `mpv`.  
 - Choose specific video/audio format for download.  
-- Rofi-based interactive menu for easy navigation.  
+- yad-based interactive menu for easy navigation.  
 - Desktop notifications for download/playback progress.  
 
 ---
@@ -26,7 +30,7 @@ A lightweight Bash script with **Rofi menus** to download videos, music, or play
 - `bash`  
 - [`yt-dlp`](https://github.com/yt-dlp/yt-dlp)  
 - [`mpv`](https://github.com/mpv-player/mpv)  
-- [`rofi`](https://github.com/davatorium/rofi)  
+- [`yad`](https://github.com/v1cont/yad)  
 - [`curl`](https://github.com/curl/curl) (for connectivity check)  
 - `notify-send` (for desktop notifications)  
 ---
@@ -38,23 +42,23 @@ A lightweight Bash script with **Rofi menus** to download videos, music, or play
 
 ### Arch Linux  
 ```bash
-sudo pacman -S --needed bash mpv rofi curl libnotify python-pipx
+sudo pacman -S --needed bash mpv yad curl libnotify python-pipx
 pipx install yt-dlp
 ```
 ### Debian / Ubuntu
 ```bash
 sudo apt update
-sudo apt install bash mpv rofi curl libnotify-bin pipx
+sudo apt install bash mpv yad curl libnotify-bin pipx
 pipx install yt-dlp
 ```
 ### Fedora
 ```bash
-sudo dnf install bash mpv rofi curl libnotify pipx
+sudo dnf install bash mpv yad curl libnotify pipx
 pipx install yt-dlp
 ```
 ### openSUSE
 ```bash
-sudo zypper install bash mpv rofi curl libnotify-tools pipx
+sudo zypper install bash mpv yad curl libnotify-tools pipx
 pipx install yt-dlp
 ```
 ### Alternative (Manual Install from Source)
@@ -64,17 +68,17 @@ If you don’t want to use `pipx`, you can build [`yt-dlp`](https://github.com/y
    ```bash
    git clone https://github.com/Asep5K/projek-yt.git
    cd projek-yt
-   cp -r rofi ~/.config
    chmod +x yt.sh
    ./yt.sh
    ```
 
-## 📸 Screenshots
+## 🎥 Demo & Screenshots
 
-![](./screenshot/Url.png)  
-![](./screenshot/Option.png)  
-![](./screenshot/Music.png)  
-![](./screenshot/Download.png)  
-![](./screenshot/Play.png)  
-
+![Demo](./screenshot/demo.gif)  
+![](./screenshot/url.png)  
+![](./screenshot/option.png)  
+![](./screenshot/music.png)  
+![](./screenshot/download.png)  
+![](./screenshot/play.png)  
+![](./screenshot/log.png)
 ---
