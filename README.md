@@ -31,7 +31,7 @@ A lightweight Bash script with **yad menus** to download videos, music, or play 
 - [`yt-dlp`](https://github.com/yt-dlp/yt-dlp)  
 - [`mpv`](https://github.com/mpv-player/mpv)  
 - [`yad`](https://github.com/v1cont/yad)  
-- [`curl`](https://github.com/curl/curl) (for connectivity check)  
+- [`wget`](https://github.com/wget/wget) (for connectivity check)  
 - `notify-send` (for desktop notifications)  
 ---
 
@@ -42,23 +42,23 @@ A lightweight Bash script with **yad menus** to download videos, music, or play 
 
 ### Arch Linux  
 ```bash
-sudo pacman -S --needed bash mpv yad curl libnotify python-pipx
+sudo pacman -S --needed bash mpv yad wget libnotify python-pipx
 pipx install yt-dlp
 ```
 ### Debian / Ubuntu
 ```bash
 sudo apt update
-sudo apt install bash mpv yad curl libnotify-bin pipx
+sudo apt install bash mpv yad wget libnotify-bin pipx
 pipx install yt-dlp
 ```
 ### Fedora
 ```bash
-sudo dnf install bash mpv yad curl libnotify pipx
+sudo dnf install bash mpv yad wget libnotify pipx
 pipx install yt-dlp
 ```
 ### openSUSE
 ```bash
-sudo zypper install bash mpv yad curl libnotify-tools pipx
+sudo zypper install bash mpv yad wget libnotify-tools pipx
 pipx install yt-dlp
 ```
 ### Alternative (Manual Install from Source)
