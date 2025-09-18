@@ -5,19 +5,6 @@
 # 🎬 YouTube Downloader & Player (Bash + yad)
 # ============================================================
 
-# ██╗   ██╗ ██████╗ ██╗   ██╗████████╗██╗   ██╗██████╗ ███████╗
-# ╚██╗ ██╔╝██╔═══██╗██║   ██║╚══██╔══╝██║   ██║██╔══██╗██╔════╝
-#  ╚████╔╝ ██║   ██║██║   ██║   ██║   ██║   ██║██████╔╝█████╗  
-#   ╚██╔╝  ██║   ██║██║   ██║   ██║   ██║   ██║██╔══██╗██╔══╝  
-#    ██║   ╚██████╔╝╚██████╔╝   ██║   ╚██████╔╝██████╔╝███████╗
-#    ╚═╝    ╚═════╝  ╚═════╝    ╚═╝    ╚═════╝ ╚═════╝ ╚══════╝
-# ██████╗  ██████╗ ██╗    ██╗███╗   ██╗██╗      ██████╗  █████╗ ██████╗ ███████╗██████╗ 
-# ██╔══██╗██╔═══██╗██║    ██║████╗  ██║██║     ██╔═══██╗██╔══██╗██╔══██╗██╔════╝██╔══██╗
-# ██║  ██║██║   ██║██║ █╗ ██║██╔██╗ ██║██║     ██║   ██║███████║██║  ██║█████╗  ██████╔╝
-# ██║  ██║██║   ██║██║███╗██║██║╚██╗██║██║     ██║   ██║██╔══██║██║  ██║██╔══╝  ██╔══██╗
-# ██████╔╝╚██████╔╝╚███╔███╔╝██║ ╚████║███████╗╚██████╔╝██║  ██║██████╔╝███████╗██║  ██║
-# ╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═══╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═╝
-
 # Link icons
 ICON_SUCCESS_URL="https://github.com/Asep5K/projek-yt/blob/main/screenshot/2.jpg?raw=true"
 ICON_FAIL_URL="https://github.com/Asep5K/projek-yt/blob/main/screenshot/1.jpg?raw=true"
@@ -31,12 +18,28 @@ ICON_FAIL="$ICON_DIR/icon_fail.jpg"
 LOGFILE="/tmp/yt.log"
 : > "$LOGFILE"   # reset log
 
+# Downloads dir
+MUSIC_DIR="$HOME/Music/Downloads"
+VIDEO_DIR="$HOME/Videos/Downloads"
+
+# Name
+MUSIC_NAME="%(title)s.%(ext)s"
+PLAYLIST_MUSIC_NAME="%(playlist_index)02d - %(title)s.%(ext)s"
+VIDEO_NAME="%(title)s_%(height)sp.%(ext)s"
+PLAYLIST_VIDEO_NAME="%(playlist_index)02d - %(title)s_%(height)sp.%(ext)s"
+PLAYLIST_VIDEO_DIR="$VIDEO_DIR/%(playlist_title)s"
+
 # Pastikan folder ada
 [ ! -d "$ICON_DIR" ] && mkdir -p "$ICON_DIR"
 
-# Download ikon kalau belum ada
-[ ! -f "$ICON_SUCCESS" ] && wget -q -O "$ICON_SUCCESS" "$ICON_SUCCESS_URL"
-[ ! -f "$ICON_FAIL" ] && wget -q -O "$ICON_FAIL" "$ICON_FAIL_URL"
+download_if_missing() {
+    local FILE="$1"
+    local URL="$2"
+
+    if [ ! -f "$FILE" ]; then
+        wget -q -O "$FILE" "$URL" 
+    fi
+}
 
 # Connection check
 check_internet() {
@@ -52,9 +55,13 @@ if ! command -v yt-dlp >/dev/null 2>&1; then
     notify-send -i "$ICON_FAIL" "⚠ Warning" "yt-dlp not found!"
     exit 1
 else
+    # Internet check
     check_internet
+
+
+    
     # Input URL
-    url=$(yad --entry \
+    URL=$(yad --entry \
     --title="Enter YouTube URL" \
     --text="Paste YouTube link here:" \
     --width=500 --button="✔ Ok":0 \
@@ -67,19 +74,24 @@ if pidof yad > /dev/null; then
 fi
 
 # 🔎 Cek dan validasi URL
-if [ -z "$url" ]; then
+if [ -z "$URL" ]; then
     exit 0
-elif [[ ! "$url" =~ ^https?://(www\.)?(youtube\.com|youtu\.be)/ ]]; then
+elif [[ ! "$URL" =~ ^https?://(www\.)?(youtube\.com|youtu\.be)/ ]]; then
     notify-send -i "$ICON_FAIL" "Invalid URL" "Only YouTube links are allowed!"
     exit 1
 fi
 
+    # Download ikon kalau belum ada
+    download_if_missing "$ICON_SUCCESS" "$ICON_SUCCESS_URL" &
+    download_if_missing "$ICON_FAIL" "$ICON_FAIL_URL" &
+
 # 📌 Menu options
-options=$(yad --list \
+options=$(yad --list --no-multiple \
     --title="Download Options" \
     --column="Option" \
     "Download Videos" \
     "Download Music" \
+    "Download Playlist Video" \
     "Play Music/Videos" \
     --width=600 --height=200 \
     --button="✔ Ok":0 \
@@ -90,6 +102,11 @@ if [[ -z "$options" ]]; then
     echo "User ✖ Canceled"
     exit 0
 fi
+
+notify_done() {
+    local FILE="$1"
+    notify-send -i "$ICON_SUCCESS" "$FILE" "✔ Download Finished"
+}
 
 # Log
 log() {
@@ -114,7 +131,8 @@ log() {
         fi
 
         # pakai tail -n +1 supaya isi file yang sudah ada langsung muncul
-        tail -n +1 -f "$LOGFILE" | yad --text-info --width=500 --height=300 --button="✔ Ok":0 --button="✖ Cancel":1 &
+        # foot -T "Log Status" -e tail -f /tmp/yt.log &
+        tail -n +1 -f "$LOGFILE" | yad --text-info --title="Log Status" --width=500 --height=300 --button="Close Log":2 &
         echo $! > /tmp/yt_log_viewer.pid
         ;;
     "hideview")
@@ -132,7 +150,7 @@ log() {
 
 # Menu download selector
 download_videos() {
-    download_videos=$(yad --list --title="Video options" --column=Option \
+    download_videos=$(yad --list --title="Video options" --column="Option Download Videos" \
         "Download 240p" "Download 360p" "Download 480p" \
         "Download 720p" "Download 1080p" "Download 2K" \
         "Download 4K" "Best Resolution" "Exit" \
@@ -148,7 +166,7 @@ download_videos() {
 
 # Play menu selector
 play() {
-    play=$(yad --list --title="Play options" --column=Option \
+    play=$(yad --list --title="Play options" --column="Option Play Music/Videos" \
         "Play Music" "Play 240p" "Play 360p" "Play 480p" \
         "Play 720p" "Play 1080p" "Play 2K" \
         "Play 4K" "Best Resolution" "Exit" \
@@ -164,7 +182,7 @@ play() {
 
 # Music menu selector
 music_download() {
-    music_download=$(yad --list --title="Play options" --column=Option \
+    music_download=$(yad --list --title="Play options" --column="Option Download Music" \
         "Download Mp3" "Download Playlist Mp3" \
         "Download Flac" "Download Playlist Flac" "Exit" \
         --width=600 --height=210 \
@@ -177,125 +195,74 @@ music_download() {
     fi
 }
 
-#  Audio only 
-music() {
-    outdir="$HOME/Music/Downloads"
-    filename="%(title)s.%(ext)s"
-    playlistname="%(playlist_index)02d - %(title)s.%(ext)s"
-    mkdir -p "$outdir"
-    renamefile() {
-        for f in "$outdir"/*.{flac,mp3}; do
-            [ -e "$f" ] || continue
-            new=$(echo "$f" | sed -E 's/^0([0-9]{2})/\1/')
-            mv "$f" "$new"
-        done
-    }
-
-    log showlog
-
-    if [ "$1" = "mp3" ]; then
-    
-        notify-send -i "$ICON_SUCCESS" "Downloading..." "Audio Mp3"
-
-        if log ytlog yt-dlp -x --audio-format mp3 \
-            -o "$outdir/$filename" "$url"; then
-            log hideview
-            latest_music=$(ls -t "$outdir" | head -n 1)
-            notify-send -i "$ICON_SUCCESS" "$latest_music" "Download complete"
-        else 
-            notify-send -i "$ICON_FAIL" "✖ Download Failed" "Check the URL or network"
-        fi
-    elif [ "$1" = "flac" ]; then
-    
-        notify-send -i "$ICON_SUCCESS" "Downloading..." "Audio Flac"
-    
-        if  log ytlog yt-dlp -x --audio-format flac \
-            -o "$outdir/$filename" "$url"; then
-            
-            log hideview
-
-            latest_music=$(ls -t "$outdir" | head -n 1)
-            notify-send -i "$ICON_SUCCESS" "$latest_music" "Download complete"
-        else 
-            notify-send -i "$ICON_FAIL" "✖ Download Failed" "Check the URL or network"
-        fi
-    elif [ "$1" = "playlistmp3" ]; then
-        notify-send -i "$ICON_SUCCESS" "Downloading Playlist Mp3"
-        if log ytlog yt-dlp --continue \
-            -f bestaudio -x --audio-format mp3 \
-            -o "$outdir"/"$playlistname" "$url"; then
-            
-            log hideview
-
-            latest_music=$(ls -t "$outdir" | head -n 1)
-            notify-send -i "$ICON_SUCCESS" "$latest_music" "✔ Download Finished"
-            # renamefile
-        else
-            notify-send -i "$ICON_FAIL" "✖ Download Failed" "Check the URL or network"
-        fi
-    else
-        notify-send -i "$ICON_SUCCESS" "Downloading Playlist Flac"
-        if log ytlog yt-dlp --continue \
-            -f bestaudio -x --audio-format flac \
-            -o "$outdir"/"$playlistname" "$url"; then
-            
-            log hideview
-            
-            latest_music=$(ls -t "$outdir" | head -n 1)
-            notify-send -i "$ICON_SUCCESS" "$latest_music" "✔ Download Finished"
-            # renamefile
-        else 
-            notify-send -i "$ICON_FAIL" "✖ Download Failed" "Check the URL or network"
-        fi
-    fi
+playlist_download() {
+    playlist_download=$(yad --list --title="Video options" --column="Option Download Playlist Video" \
+        "Playlist 240p" "Playlist 360p" "Playlist 480p" \
+        "Playlist 720p" "Playlist 1080p" "Playlist 2K" \
+        "Playlist 4K" "Best Resolution" "Exit" \
+        --width=600 --height=320 \
+        --button="✔ Ok":0 --button="✖ Cancel":1 \
+        --print-column=1)
+    playlist_download="${playlist_download%|}"
+    if [[ -z "$playlist_download" ]]; then
+        echo "User ✖ Canceled"
+        exit 0
+    fi    
 }
 
-# Download videos option
-download() {
-    vid_dir="$HOME/Videos/Downloads"
-    filename="%(title)s_%(height)sp.%(ext)s"
-    mkdir -p "$vid_dir"
+# renamefile() {
+#     for f in "$MUSIC_DIR"/*.{flac,mp3}; do
+#         [ -e "$f" ] || continue
+#         new=$(echo "$f" | sed -E 's/^0([0-9]{2})/\1/')
+#         mv "$f" "$new"
+#     done
+# }
 
-    log showlog
+download_file() {
+    local type="$1"   # best, mp3, flac, playlistmp3, playlistflac, atau resolusi
+    local outdir="$2" # folder tujuan, VIDEO_DIR atau MUSIC_DIR
+    local name="$3"   # nama file
+    local format="$4" # untuk audio: mp3/flac, untuk video kosong
+
+    notify-send -i "$ICON_SUCCESS" "Downloading..." "$type"
     
-    if [ "$1" = "best" ]; then
-        notify-send -i "$ICON_SUCCESS" "Downloading..." "Best quality videos"
-        if log ytlog yt-dlp -f "bestvideo+bestaudio/best" --merge-output-format mp4 \
-            -o "$vid_dir/$filename" "$url"; then
-            
-            log hideview
+    log showlog
 
-            latest_video=$(ls -t "$vid_dir" | head -n 1)
-            notify-send -i "$ICON_SUCCESS" "✔ Download Finished" "$latest_video saved in $vid_dir"
-        else
-            notify-send -i "$ICON_FAIL" "✖ Download Failed" "Check the URL or network"
-        fi
+    if [ -n "$format" ]; then
+        # download audio
+        log ytlog yt-dlp -x --audio-format "$format" -o "$outdir/$name" "$URL"
     else
-        notify-send -i "$ICON_SUCCESS" " Downloading..." "${1}p auto fallback"
-       
-        if log ytlog yt-dlp -f "bv[height<=$1]+bestaudio/best" \
-            -o "$vid_dir/$filename" "$url"; then
-            
-            log hideview
-            
-            latest_video=$(ls -t "$vid_dir" | head -n 1)
-            notify-send -i "$ICON_SUCCESS" "✔ Download Finished" "$latest_video saved in $vid_dir"
+        if [ "$type" = "best" ]; then
+            # download video terbaik
+            log ytlog yt-dlp -f "bestvideo+bestaudio/best" --merge-output-format mp4 -o "$outdir/$name" "$URL"
         else
-            notify-send -i "$ICON_FAIL" "✖ Download Failed" "Check the URL or network"
-        fi 
+            # download video dengan resolusi tertentu
+            log ytlog yt-dlp -f "bv[height<=$type]+bestaudio/best" -o "$outdir/$name" "$URL"
+        fi
+    fi
+
+    local status=$?   # simpan exit status yt-dlp
+    
+
+    if [ $status -eq 0 ]; then
+        log hideview
+        latest_file=$(ls -t "$outdir" | head -n 1)  # ambil file terbaru
+        notify_done "$latest_file"                    # kirim notifikasi selesai
+    else
+        notify-send -i "$ICON_FAIL" "✖ Download Failed" "Check the URL or network"
     fi
 }
 
 # Select option
 play_select() {
       if [ "$1" = "best" ]; then
-            mpv "$url" & 
+            mpv "$URL" & 
             notify-send -i "$ICON_SUCCESS" "Playing best video"
         elif [ "$1" == "music" ]; then
-            mpv --no-video "$url" &
+            mpv --no-video "$URL" &
             notify-send -i "$ICON_SUCCESS" "Playing audio"
         else    
-            mpv --ytdl-format="bv[height<=$1]+bestaudio/best" "$url" &
+            mpv --ytdl-format="bv[height<=$1]+bestaudio/best" "$URL" &
             notify-send -i "$ICON_SUCCESS" "Playing ${1}p auto fallback"
       fi
 }
@@ -304,15 +271,64 @@ if [ -n "$options" ]; then
     if [ "$options" = "Download Videos" ]; then
         download_videos
         case "$download_videos" in
-            "Download 240p") download 240 ;;
-            "Download 360p") download 360 ;;
-            "Download 480p") download 480 ;;
-            "Download 720p") download 720 ;;
-            "Download 1080p") download 1080 ;;
-            "Download 2K") download 1440 ;;
-            "Download 4K") download 2160 ;;
-            "Best Resolution") download "best" ;;
-            "Exit") exit 0 ;;
+            "Download 240p") 
+                download_file 240 "$VIDEO_DIR" "$VIDEO_NAME" 
+                ;;
+            "Download 360p") 
+                download_file 360 "$VIDEO_DIR" "$VIDEO_NAME" 
+                ;;
+            "Download 480p") 
+                download_file 480 "$VIDEO_DIR" "$VIDEO_NAME"
+                ;;
+            "Download 720p") 
+                download_file 720 "$VIDEO_DIR" "$VIDEO_NAME" 
+                ;;
+            "Download 1080p") 
+                download_file 1080 "$VIDEO_DIR" "$VIDEO_NAME"
+                ;;
+            "Download 2K") 
+                download_file 1440 "$VIDEO_DIR" "$VIDEO_NAME"
+                ;;
+            "Download 4K") 
+                download_file 2160 "$VIDEO_DIR" "$VIDEO_NAME"
+                ;;
+            "Best Resolution") 
+                download_file "best" "$VIDEO_DIR" "$VIDEO_NAME"
+                ;;
+            "Exit") 
+                exit 0 
+                ;;
+         esac
+    elif [ "$options" = "Download Playlist Video" ]; then
+            playlist_download
+        case "$playlist_download" in
+            "Playlist 240p") 
+                download_file 240 "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME" 
+                ;;
+            "Playlist 360p") 
+                download_file 360 "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME" 
+                ;;
+            "Playlist 480p") 
+                download_file 480 "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME"
+                ;;
+            "Playlist 720p") 
+                download_file 720 "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME" 
+                ;;
+            "Playlist 1080p") 
+                download_file 1080 "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME"
+                ;;
+            "Playlist 2K") 
+                download_file 1440 "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME"
+                ;;
+            "Playlist 4K") 
+                download_file 2160 "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME"
+                ;;
+            "Best Resolution") 
+                download_file "best" "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME"
+                ;;
+            "Exit") 
+                exit 0 
+                ;;
          esac
     elif [ "$options" = "Play Music/Videos" ]; then
             play
@@ -331,11 +347,21 @@ if [ -n "$options" ]; then
     elif [ "$options" = "Download Music" ]; then
             music_download
         case "$music_download" in
-            "Download Mp3") music "mp3" ;;
-            "Download Playlist Mp3") music "playlistmp3" ;;
-            "Download Flac") music "flac" ;;
-            "Download Playlist Flac") music "playlistflac";;
-            "Exit") exit 0 ;;
+            "Download Mp3") 
+                download_file "mp3" "$MUSIC_DIR" "$MUSIC_NAME" "mp3"
+                ;;
+            "Download Playlist Mp3") 
+                download_file "playlistmp3" "$MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "mp3" 
+                ;;
+            "Download Flac")
+                download_file "flac" "$MUSIC_DIR" "$MUSIC_NAME" "flac" 
+                ;;
+            "Download Playlist Flac") 
+                download_file "playlistflac" "$MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "flac"
+                ;;
+            "Exit") 
+            exit 0 
+            ;;
         esac
     fi
 fi
