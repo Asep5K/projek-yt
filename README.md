@@ -75,7 +75,7 @@ If you don’t want to use `pipx`, you can build [`yt-dlp`](https://github.com/y
 ## 🎥 Demo & Screenshots
 
 ![Demo](./screenshot/demo.gif)  
-![](./screenshot/URL.png)  
+![](./screenshot/url.png)  
 ![](./screenshot/option.png)  
 ![](./screenshot/music.png)  
 ![](./screenshot/download.png)  
