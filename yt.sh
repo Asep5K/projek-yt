@@ -23,8 +23,8 @@ MUSIC_DIR="$HOME/Music/Downloads"
 VIDEO_DIR="$HOME/Videos/Downloads"
 
 # Name
-MUSIC_NAME="%(title)s.%(ext)s"
-PLAYLIST_MUSIC_NAME="%(playlist_index)02d - %(title)s.%(ext)s"
+MUSIC_NAME="%(artist)s - %(title)s.%(ext)s"
+PLAYLIST_MUSIC_NAME="%(playlist_index)02d - %(artist) - %(title)s.%(ext)s"
 VIDEO_NAME="%(title)s_%(height)sp.%(ext)s"
 PLAYLIST_VIDEO_NAME="%(playlist_index)02d - %(title)s_%(height)sp.%(ext)s"
 PLAYLIST_VIDEO_DIR="$VIDEO_DIR/%(playlist_title)s"
@@ -58,19 +58,12 @@ else
     # Internet check
     check_internet
 
-
-    
     # Input URL
     URL=$(yad --entry \
     --title="Enter YouTube URL" \
     --text="Paste YouTube link here:" \
     --width=500 --button="✔ Ok":0 \
-    --button="✖ Cancel":1)
-fi
-
-# yad check
-if pidof yad > /dev/null; then
-    pkill yad
+    --button="✖ Exit":1)
 fi
 
 # 🔎 Cek dan validasi URL
@@ -81,27 +74,9 @@ elif [[ ! "$URL" =~ ^https?://(www\.)?(youtube\.com|youtu\.be)/ ]]; then
     exit 1
 fi
 
-    # Download ikon kalau belum ada
-    download_if_missing "$ICON_SUCCESS" "$ICON_SUCCESS_URL" &
-    download_if_missing "$ICON_FAIL" "$ICON_FAIL_URL" &
-
-# 📌 Menu options
-options=$(yad --list --no-multiple \
-    --title="Download Options" \
-    --column="Option" \
-    "Download Videos" \
-    "Download Music" \
-    "Download Playlist Video" \
-    "Play Music/Videos" \
-    --width=600 --height=200 \
-    --button="✔ Ok":0 \
-    --button="✖ Cancel":1 \
-    --print-column=1)
-options="${options%|}"
-if [[ -z "$options" ]]; then
-    echo "User ✖ Canceled"
-    exit 0
-fi
+# Download ikon kalau belum ada
+download_if_missing "$ICON_SUCCESS" "$ICON_SUCCESS_URL" &
+download_if_missing "$ICON_FAIL" "$ICON_FAIL_URL" &
 
 notify_done() {
     local FILE="$1"
@@ -131,7 +106,6 @@ log() {
         fi
 
         # pakai tail -n +1 supaya isi file yang sudah ada langsung muncul
-        # foot -T "Log Status" -e tail -f /tmp/yt.log &
         tail -n +1 -f "$LOGFILE" | yad --text-info --title="Log Status" --width=500 --height=300 --button="Close Log":2 &
         echo $! > /tmp/yt_log_viewer.pid
         ;;
@@ -148,76 +122,6 @@ log() {
     esac
 }
 
-# Menu download selector
-download_videos() {
-    download_videos=$(yad --list --title="Video options" --column="Option Download Videos" \
-        "Download 240p" "Download 360p" "Download 480p" \
-        "Download 720p" "Download 1080p" "Download 2K" \
-        "Download 4K" "Best Resolution" "Exit" \
-        --width=600 --height=320 \
-        --button="✔ Ok":0 --button="✖ Cancel":1 \
-        --print-column=1)
-    download_videos="${download_videos%|}"
-    if [[ -z "$download_videos" ]]; then
-        echo "User ✖ Canceled"
-        exit 0
-    fi
-}
-
-# Play menu selector
-play() {
-    play=$(yad --list --title="Play options" --column="Option Play Music/Videos" \
-        "Play Music" "Play 240p" "Play 360p" "Play 480p" \
-        "Play 720p" "Play 1080p" "Play 2K" \
-        "Play 4K" "Best Resolution" "Exit" \
-        --width=600 --height=320 \
-        --button="▶ Play":0 --button="✖ Cancel":1 \
-        --print-column=1)
-    play="${play%|}"
-    if [[ -z "$play" ]]; then
-        echo "User ✖ Canceled"
-        exit 0
-    fi
-}
-
-# Music menu selector
-music_download() {
-    music_download=$(yad --list --title="Play options" --column="Option Download Music" \
-        "Download Mp3" "Download Playlist Mp3" \
-        "Download Flac" "Download Playlist Flac" "Exit" \
-        --width=600 --height=210 \
-        --button="✔ Ok":0 --button="✖ Cancel":1 \
-        --print-column=1)
-    music_download="${music_download%|}"
-    if [[ -z "$music_download" ]]; then
-        echo "User ✖ Canceled"
-        exit 0
-    fi
-}
-
-playlist_download() {
-    playlist_download=$(yad --list --title="Video options" --column="Option Download Playlist Video" \
-        "Playlist 240p" "Playlist 360p" "Playlist 480p" \
-        "Playlist 720p" "Playlist 1080p" "Playlist 2K" \
-        "Playlist 4K" "Best Resolution" "Exit" \
-        --width=600 --height=320 \
-        --button="✔ Ok":0 --button="✖ Cancel":1 \
-        --print-column=1)
-    playlist_download="${playlist_download%|}"
-    if [[ -z "$playlist_download" ]]; then
-        echo "User ✖ Canceled"
-        exit 0
-    fi    
-}
-
-# renamefile() {
-#     for f in "$MUSIC_DIR"/*.{flac,mp3}; do
-#         [ -e "$f" ] || continue
-#         new=$(echo "$f" | sed -E 's/^0([0-9]{2})/\1/')
-#         mv "$f" "$new"
-#     done
-# }
-
 download_file() {
     local type="$1"   # best, mp3, flac, playlistmp3, playlistflac, atau resolusi
     local outdir="$2" # folder tujuan, VIDEO_DIR atau MUSIC_DIR
@@ -230,7 +134,7 @@ download_file() {
 
     if [ -n "$format" ]; then
         # download audio
-        log ytlog yt-dlp -x --audio-format "$format" -o "$outdir/$name" "$URL"
+        log ytlog yt-dlp -x --audio-format "$format" --audio-quality 0 -o "$outdir/$name" "$URL"
     else
         if [ "$type" = "best" ]; then
             # download video terbaik
@@ -247,29 +151,31 @@ download_file() {
     if [ $status -eq 0 ]; then
         log hideview
         latest_file=$(ls -t "$outdir" | head -n 1)  # ambil file terbaru
-        notify_done "$latest_file"                    # kirim notifikasi selesai
+        notify_done "$latest_file"  &&
+        exit 0                  # kirim notifikasi selesai
     else
         notify-send -i "$ICON_FAIL" "✖ Download Failed" "Check the URL or network"
     fi
 }
 
-# Select option
-play_select() {
-      if [ "$1" = "best" ]; then
-            mpv "$URL" & 
-            notify-send -i "$ICON_SUCCESS" "Playing best video"
-        elif [ "$1" == "music" ]; then
-            mpv --no-video "$URL" &
-            notify-send -i "$ICON_SUCCESS" "Playing audio"
-        else    
-            mpv --ytdl-format="bv[height<=$1]+bestaudio/best" "$URL" &
-            notify-send -i "$ICON_SUCCESS" "Playing ${1}p auto fallback"
-      fi
-}
+# Menu download selector
+download_videos() {
+    while true; do
+        download_videos=$(yad --list --title="Video options" --column="Option Download Videos" \
+            "Download 240p" "Download 360p" "Download 480p" \
+            "Download 720p" "Download 1080p" "Download 2K" \
+            "Download 4K" "Best Resolution" "Back" \
+            --width=600 --height=320 \
+            --button="✔ Ok":0 --button="✖ Exit":1 \
+            --print-column=1)
 
-if [ -n "$options" ]; then
-    if [ "$options" = "Download Videos" ]; then
-        download_videos
+        download_videos="${download_videos%|}"
+        
+        if [[ -z "$download_videos" || "$download_videos" == "✖ Exit" ]]; then
+            echo "User ✖ Canceled"
+            exit 0
+        fi
+        
         case "$download_videos" in
             "Download 240p") 
                 download_file 240 "$VIDEO_DIR" "$VIDEO_NAME" 
@@ -295,12 +201,128 @@ if [ -n "$options" ]; then
             "Best Resolution") 
                 download_file "best" "$VIDEO_DIR" "$VIDEO_NAME"
                 ;;
-            "Exit") 
-                exit 0 
+            "Back") 
+                return  # Kembali ke menu utama
                 ;;
-         esac
-    elif [ "$options" = "Download Playlist Video" ]; then
-            playlist_download
+        esac
+    done
+}
+
+# Play menu selector
+play() {
+    while true; do
+        play=$(yad --list --title="Play options" --column="Option Play Music/Videos" \
+            "Play Music" "Play 240p" "Play 360p" "Play 480p" \
+            "Play 720p" "Play 1080p" "Play 2K" \
+            "Play 4K" "Best Resolution" "Back" \
+            --width=600 --height=320 \
+            --button="▶ Play":0 --button="✖ Exit":1 \
+            --print-column=1)
+        
+        play="${play%|}"
+        
+        if [[ -z "$play" || "$play" == "✖ Exit" ]]; then
+            echo "User ✖ Canceled"
+            exit 0
+        fi
+
+        case "$play" in
+            "Play Music") 
+                play_select "music" 
+                exit 0
+                ;;
+            "Play 240p") 
+                play_select 240 
+                exit 0
+                ;;
+            "Play 360p") 
+                play_select 360 
+                exit 0
+                ;;
+            "Play 480p") 
+                play_select 480 
+                exit 0
+                ;;
+            "Play 720p") 
+                play_select 720 
+                exit 0
+                ;;
+            "Play 1080p") 
+                play_select 1080 
+                exit 0
+                ;; 
+            "Play 2K") 
+                play_select 1440 
+                exit 0
+                ;;
+            "Play 4K") 
+                play_select 2160 
+                exit 0
+                ;;
+            "Best Resolution") 
+                play_select "best" 
+                exit 0
+                ;;
+            "Back") 
+            return ;;
+        esac  
+    done
+}
+
+# Music menu selector
+music_download() {
+    while true; do
+        music_download=$(yad --list --title="Play options" --column="Option Download Music" \
+            "Download Mp3" "Download Playlist Mp3" \
+            "Download Flac" "Download Playlist Flac" "Back" \
+            --width=600 --height=210 \
+            --button="✔ Ok":0 --button="✖ Exit":1 \
+            --print-column=1)
+
+        music_download="${music_download%|}"
+
+        if [[ -z "$music_download" || "$music_download"  == "✖ Exit" ]]; then
+            echo "User ✖ Canceled"
+            exit 0
+        fi
+
+        case "$music_download" in
+            "Download Mp3") 
+                download_file "mp3" "$MUSIC_DIR" "$MUSIC_NAME" "mp3"
+                ;;
+            "Download Playlist Mp3") 
+                download_file "playlistmp3" "$MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "mp3" 
+                ;;
+            "Download Flac")
+                download_file "flac" "$MUSIC_DIR" "$MUSIC_NAME" "flac" 
+                ;;
+            "Download Playlist Flac") 
+                download_file "playlistflac" "$MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "flac"
+                ;;
+            "Back") 
+                return 
+                ;;
+        esac
+    done
+}
+
+playlist_download() {
+    while true; do
+        playlist_download=$(yad --list --title="Video options" --column="Option Download Playlist Video" \
+            "Playlist 240p" "Playlist 360p" "Playlist 480p" \
+            "Playlist 720p" "Playlist 1080p" "Playlist 2K" \
+            "Playlist 4K" "Best Resolution" "Back" \
+            --width=600 --height=320 \
+            --button="✔ Ok":0 --button="✖ Exit":1 \
+            --print-column=1)
+        
+        playlist_download="${playlist_download%|}"
+        
+        if [[ -z "$playlist_download" || "$playlist_download" == "✖ Exit" ]]; then
+            echo "User ✖ Canceled"
+            exit 0
+        fi   
+
         case "$playlist_download" in
             "Playlist 240p") 
                 download_file 240 "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME" 
@@ -326,42 +348,63 @@ if [ -n "$options" ]; then
             "Best Resolution") 
                 download_file "best" "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME"
                 ;;
-            "Exit") 
-                exit 0 
+            "Back") 
+                return 
                 ;;
          esac
-    elif [ "$options" = "Play Music/Videos" ]; then
-            play
-        case "$play" in
-            "Play Music") play_select "music" ;;
-            "Play 240p") play_select 240 ;;
-            "Play 360p") play_select 360 ;;
-            "Play 480p") play_select 480 ;;
-            "Play 720p") play_select 720 ;;
-            "Play 1080p") play_select 1080 ;; 
-            "Play 2K") play_select 1440 ;;
-            "Play 4K") play_select 2160 ;;
-            "Best Resolution") play_select "best" ;;
-            "Exit") exit 0 ;;
-        esac  
-    elif [ "$options" = "Download Music" ]; then
-            music_download
-        case "$music_download" in
-            "Download Mp3") 
-                download_file "mp3" "$MUSIC_DIR" "$MUSIC_NAME" "mp3"
-                ;;
-            "Download Playlist Mp3") 
-                download_file "playlistmp3" "$MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "mp3" 
-                ;;
-            "Download Flac")
-                download_file "flac" "$MUSIC_DIR" "$MUSIC_NAME" "flac" 
-                ;;
-            "Download Playlist Flac") 
-                download_file "playlistflac" "$MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "flac"
-                ;;
-            "Exit") 
-            exit 0 
-            ;;
-        esac
+    done 
+    exit 1
+}
+
+# Select option
+play_select() {
+    if [ "$1" = "best" ]; then
+        mpv "$URL" & 
+        notify-send -i "$ICON_SUCCESS" "Playing best video"
+    elif [ "$1" == "music" ]; then
+        mpv --no-video "$URL" &
+        notify-send -i "$ICON_SUCCESS" "Playing audio"
+    else    
+        mpv --ytdl-format="bv[height<=$1]+bestaudio/best" "$URL" &
+        notify-send -i "$ICON_SUCCESS" "Playing ${1}p auto fallback"
     fi
-fi
+}
+
+# Loop utama
+while true; do
+    # Tampilkan menu utama
+    options=$(yad --list --no-multiple \
+        --title="Download Options" \
+        --column="Option" \
+        "Download Videos" \
+        "Download Music" \
+        "Download Playlist Video" \
+        "Play Music/Videos" \
+        --width=600 --height=200 \
+        --button="✔ Ok":0 \
+        --button="✖ Exit":1 \
+        --print-column=1)
+
+    options="${options%|}"
+    
+    if [[ -z "$options" || "$options" == "✖ Exit" ]]; then
+        echo "User ✖ Canceled"
+        exit 0
+    fi
+    
+    # Proses pilihan
+    case "$options" in
+        "Download Videos")
+            download_videos
+            ;;
+        "Download Music")
+            music_download
+            ;;
+        "Download Playlist Video")
+            playlist_download
+            ;;
+        "Play Music/Videos")
+            play
+            ;;
+    esac
+done
