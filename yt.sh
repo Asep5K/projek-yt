@@ -16,7 +16,9 @@ ICON_FAIL="$ICON_DIR/icon_fail.jpg"
 
 # Log directory
 LOGFILE="/tmp/yt.log"
+LOGSIZE="/tmp/size.log"
 : > "$LOGFILE"   # reset log
+: > "$LOGSIZE"
 
 # Downloads dir
 MUSIC_DIR="$HOME/Music/Downloads"
@@ -78,11 +80,6 @@ fi
 download_if_missing "$ICON_SUCCESS" "$ICON_SUCCESS_URL" &
 download_if_missing "$ICON_FAIL" "$ICON_FAIL_URL" &
 
-notify_done() {
-    local FILE="$1"
-    notify-send -i "$ICON_SUCCESS" "$FILE" "✔ Download Finished"
-}
-
 # Log
 log() {
     case "$1" in
@@ -116,37 +113,55 @@ log() {
             rm -f /tmp/yt_log_viewer.pid
         fi
         ;;
+    "sizecheck")
+        yt-dlp -F "$URL" | tee "$LOGSIZE" &
+         tail -n +1 -f "$LOGSIZE" | yad --text-info \
+             --text="Size List Closing in 120s..." \
+             --timeout=120 --timeout-indicator=top \
+             --title="Size List" --width=935 \
+             --height=667 --button="Close Log":2 &
+        ;;
     *)
         return 1
         ;;
     esac
 }
 
+notify_done() {
+    local FILE="$1"
+    notify-send -i "$ICON_SUCCESS" "$FILE" "✔ Download Finished"
+}
+
 download_file() {
-    local type="$1"   # best, mp3, flac, playlistmp3, playlistflac, atau resolusi
-    local outdir="$2" # folder tujuan, VIDEO_DIR atau MUSIC_DIR
+    local type="$1"   # best, resolusi (720, 1080, dst.)
+    local outdir="$2" # folder tujuan
     local name="$3"   # nama file
-    local format="$4" # untuk audio: mp3/flac, untuk video kosong
+    local format="$4" # audio: mp3/flac, video: mp4/webm
 
     notify-send -i "$ICON_SUCCESS" "Downloading..." "$type"
-    
     log showlog
 
-    if [ -n "$format" ]; then
-        # download audio
-        log ytlog yt-dlp -x --audio-format "$format" --audio-quality 0 -o "$outdir/$name" "$URL"
-    else
+    if [ "$format" = "mp3" ] || [ "$format" = "flac" ]; then
+        # 🔊 Download audio
+        log ytlog yt-dlp -x --audio-format "$format" --audio-quality 0 \
+            -o "$outdir/$name" "$URL"
+
+    elif [ "$format" = "mp4" ] || [ "$format" = "webm" ]; then
+        # 📺 Download video
         if [ "$type" = "best" ]; then
-            # download video terbaik
-            log ytlog yt-dlp -f "bestvideo+bestaudio/best" --merge-output-format mp4 -o "$outdir/$name" "$URL"
+            log ytlog yt-dlp -f "bestvideo+bestaudio/best" \
+                --merge-output-format "$format" \
+                -o "$outdir/$name" "$URL"
         else
-            # download video dengan resolusi tertentu
-            log ytlog yt-dlp -f "bv[height<=$type]+bestaudio/best" -o "$outdir/$name" "$URL"
+            log ytlog yt-dlp -f "bv[height<=$type]+bestaudio/best" \
+                --merge-output-format "$format" \
+                -o "$outdir/$name" "$URL"
         fi
+    else
+        notify-send -i "$ICON_FAIL" "✖ Unknown format" "$format"
     fi
 
     local status=$?   # simpan exit status yt-dlp
-    
 
     if [ $status -eq 0 ]; then
         log hideview
@@ -159,47 +174,102 @@ download_file() {
 }
 
 # Menu download selector
-download_videos() {
+download_videos_webm() {
     while true; do
-        download_videos=$(yad --list --title="Video options" --column="Option Download Videos" \
-            "Download 240p" "Download 360p" "Download 480p" \
-            "Download 720p" "Download 1080p" "Download 2K" \
-            "Download 4K" "Best Resolution" "Back" \
+        download_videos_webm=$(yad --list --title="Video options" \
+            --column="Option Download Videos webm" \
+            "Download 240p.webm" "Download 360p.webm" \
+            "Download 480p.webm" "Download 720p.webm" \
+            "Download 1080p.webm" "Download 2K.webm" \
+            "Download 4K.webm" "Best Resolution.webm" \
+            "Back" \
             --width=600 --height=320 \
             --button="✔ Ok":0 --button="✖ Exit":1 \
             --print-column=1)
 
-        download_videos="${download_videos%|}"
+        download_videos_webm="${download_videos_webm%|}"
         
-        if [[ -z "$download_videos" || "$download_videos" == "✖ Exit" ]]; then
+        if [[ -z "$download_videos_webm" || "$download_videos_webm" == "✖ Exit" ]]; then
             echo "User ✖ Canceled"
             exit 0
         fi
         
-        case "$download_videos" in
-            "Download 240p") 
-                download_file 240 "$VIDEO_DIR" "$VIDEO_NAME" 
+        case "$download_videos_webm" in
+            "Download 240p.webm") 
+                download_file 240 "$VIDEO_DIR" "$VIDEO_NAME" "webm"
                 ;;
-            "Download 360p") 
-                download_file 360 "$VIDEO_DIR" "$VIDEO_NAME" 
+            "Download 360p.webm") 
+                download_file 360 "$VIDEO_DIR" "$VIDEO_NAME" "webm"
                 ;;
-            "Download 480p") 
-                download_file 480 "$VIDEO_DIR" "$VIDEO_NAME"
+            "Download 480p.webm") 
+                download_file 480 "$VIDEO_DIR" "$VIDEO_NAME" "webm"
                 ;;
-            "Download 720p") 
-                download_file 720 "$VIDEO_DIR" "$VIDEO_NAME" 
+            "Download 720p.webm") 
+                download_file 720 "$VIDEO_DIR" "$VIDEO_NAME" "webm"
                 ;;
-            "Download 1080p") 
-                download_file 1080 "$VIDEO_DIR" "$VIDEO_NAME"
+            "Download 1080p.webm") 
+                download_file 1080 "$VIDEO_DIR" "$VIDEO_NAME" "webm"
                 ;;
-            "Download 2K") 
-                download_file 1440 "$VIDEO_DIR" "$VIDEO_NAME"
+            "Download 2K.webm") 
+                download_file 1440 "$VIDEO_DIR" "$VIDEO_NAME" "webm"
                 ;;
-            "Download 4K") 
-                download_file 2160 "$VIDEO_DIR" "$VIDEO_NAME"
+            "Download 4K.webm") 
+                download_file 2160 "$VIDEO_DIR" "$VIDEO_NAME" "webm"
                 ;;
-            "Best Resolution") 
-                download_file "best" "$VIDEO_DIR" "$VIDEO_NAME"
+            "Best Resolution.webm") 
+                download_file "best" "$VIDEO_DIR" "$VIDEO_NAME" "webm"
+                ;;
+            "Back") 
+                return  # Kembali ke menu utama
+                ;;
+        esac
+    done
+}
+
+download_videos_mp4() {
+    while true; do
+        download_videos_mp4=$(yad --list --title="Video options" \
+            --column="Option Download Videos" \
+            "Download 240p.mp4" "Download 360p.mp4" \
+            "Download 480p.mp4" "Download 720p.mp4.mp4" \
+            "Download 1080p.mp4" "Download 2K.mp4" \
+            "Download 4K.mp4" "Best Resolution.mp4" \
+            "Back" \
+            --width=600 --height=320 \
+            --button="✔ Ok":0 --button="✖ Exit":1 \
+            --print-column=1)
+
+        download_videos_mp4="${download_videos_mp4%|}"
+        
+        if [[ -z "$download_videos_mp4" || "$download_videos_mp4" == "✖ Exit" ]]; then
+            echo "User ✖ Canceled"
+            exit 0
+        fi
+        
+        case "$download_videos_mp4" in
+            "Download 240p.mp4") 
+                download_file 240 "$VIDEO_DIR" "$VIDEO_NAME" "mp4"
+                ;;
+            "Download 360p.mp4") 
+                download_file 360 "$VIDEO_DIR" "$VIDEO_NAME" "mp4"
+                ;;
+            "Download 480p.mp4") 
+                download_file 480 "$VIDEO_DIR" "$VIDEO_NAME" "mp4"
+                ;;
+            "Download 720p.mp4") 
+                download_file 720 "$VIDEO_DIR" "$VIDEO_NAME" "mp4"
+                ;;
+            "Download 1080p.mp4") 
+                download_file 1080 "$VIDEO_DIR" "$VIDEO_NAME" "mp4"
+                ;;
+            "Download 2K.mp4") 
+                download_file 1440 "$VIDEO_DIR" "$VIDEO_NAME" "mp4"
+                ;;
+            "Download 4K.mp4") 
+                download_file 2160 "$VIDEO_DIR" "$VIDEO_NAME" "mp4"
+                ;;
+            "Best Resolution.mp4") 
+                download_file "best" "$VIDEO_DIR" "$VIDEO_NAME" "mp4"
                 ;;
             "Back") 
                 return  # Kembali ke menu utama
@@ -211,10 +281,13 @@ download_videos() {
 # Play menu selector
 play() {
     while true; do
-        play=$(yad --list --title="Play options" --column="Option Play Music/Videos" \
-            "Play Music" "Play 240p" "Play 360p" "Play 480p" \
-            "Play 720p" "Play 1080p" "Play 2K" \
-            "Play 4K" "Best Resolution" "Back" \
+        play=$(yad --list --title="Play options" \
+            --column="Option Play Music/Videos" \
+            "Play Music" "Play 240p" "Play 360p" \
+            "Play 480p" "Play 720p"\
+            "Play 1080p" "Play 2K" \
+            "Play 4K" "Best Resolution" \
+            "Back" \
             --width=600 --height=320 \
             --button="▶ Play":0 --button="✖ Exit":1 \
             --print-column=1)
@@ -264,7 +337,8 @@ play() {
                 exit 0
                 ;;
             "Back") 
-            return ;;
+                return 
+                ;;
         esac  
     done
 }
@@ -272,9 +346,12 @@ play() {
 # Music menu selector
 music_download() {
     while true; do
-        music_download=$(yad --list --title="Play options" --column="Option Download Music" \
-            "Download Mp3" "Download Playlist Mp3" \
-            "Download Flac" "Download Playlist Flac" "Back" \
+        music_download=$(yad --list --title="Play options" \
+            --column="Option Download Music" \
+            "Download Mp3" "Download Flac" \
+            "Download Playlist Mp3" \
+            "Download Playlist Flac" \
+            "Back" \
             --width=600 --height=210 \
             --button="✔ Ok":0 --button="✖ Exit":1 \
             --print-column=1)
@@ -308,10 +385,13 @@ music_download() {
 
 playlist_download() {
     while true; do
-        playlist_download=$(yad --list --title="Video options" --column="Option Download Playlist Video" \
-            "Playlist 240p" "Playlist 360p" "Playlist 480p" \
-            "Playlist 720p" "Playlist 1080p" "Playlist 2K" \
-            "Playlist 4K" "Best Resolution" "Back" \
+        playlist_download=$(yad --list --title="Video options" \
+            --column="Option Download Playlist Video" \
+            "Playlist 240p" "Playlist 360p" \
+            "Playlist 480p" "Playlist 720p" \
+            "Playlist 1080p" "Playlist 2K" \
+            "Playlist 4K" "Best Resolution" \
+            "Back" \
             --width=600 --height=320 \
             --button="✔ Ok":0 --button="✖ Exit":1 \
             --print-column=1)
@@ -370,17 +450,24 @@ play_select() {
     fi
 }
 
+size_check() {
+    : > "/tmp/size.log"
+   yt-dlp -F "$URL" | tee "/tmp/size.log" &
+    tail -n +1 -f "/tmp/size.log" | yad --text-info --text="Size List Closing in 120s..." --timeout=120 --timeout-indicator=top --title="Size List" --width=935 --height=667 --button="Close Log":2 &
+}
 # Loop utama
 while true; do
     # Tampilkan menu utama
     options=$(yad --list --no-multiple \
         --title="Download Options" \
-        --column="Option" \
-        "Download Videos" \
-        "Download Music" \
+        --column="Option List" \
+        "Download Videos webm" \
+        "Download Videos mp4" \
         "Download Playlist Video" \
+        "Download Music mp3/flac" \
         "Play Music/Videos" \
-        --width=600 --height=200 \
+        "Check Download Size" \
+        --width=600 --height=232 \
         --button="✔ Ok":0 \
         --button="✖ Exit":1 \
         --print-column=1)
@@ -394,10 +481,13 @@ while true; do
     
     # Proses pilihan
     case "$options" in
-        "Download Videos")
-            download_videos
+        "Download Videos webm")
+            download_videos_webm
             ;;
-        "Download Music")
+        "Download Videos mp4")
+            download_videos_mp4
+            ;;
+        "Download Music mp3/flac")
             music_download
             ;;
         "Download Playlist Video")
@@ -405,6 +495,9 @@ while true; do
             ;;
         "Play Music/Videos")
             play
+            ;;
+        "Check Download Size")
+            log sizecheck
             ;;
     esac
 done
