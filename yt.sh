@@ -24,9 +24,16 @@ LOGSIZE="/tmp/size.log"
 MUSIC_DIR="$HOME/Music/Downloads"
 VIDEO_DIR="$HOME/Videos/Downloads"
 
+# Url
+YTURL='^https?://(www\.)?(youtube\.com|youtu\.be)/[A-Za-z0-9._?&=-]+'
+IGURL='^https?://(www\.)?instagram\.com/reels?/[A-Za-z0-9_-]+'
+FBURL='^https?://(www\.)?(web\.)?facebook\.com/((share/(r|v)/[A-Za-z0-9_-]+)|(reel/[A-Za-z0-9_-]+))'
+XURL='^https?://(www\.)?x\.com/([A-Za-z0-9_]+|i)/status/[0-9]+'
+
 # Name
 MUSIC_NAME="%(artist)s - %(title)s.%(ext)s"
-PLAYLIST_MUSIC_NAME="%(playlist_index)02d - %(artist) - %(title)s.%(ext)s"
+PLAYLIST_MUSIC_NAME="%(playlist_index)02d - %(title)s.%(ext)s"
+PLAYLIST_MUSIC_DIR="$MUSIC_DIR/%(playlist_title)s"
 VIDEO_NAME="%(title)s_%(height)sp.%(ext)s"
 PLAYLIST_VIDEO_NAME="%(playlist_index)02d - %(title)s_%(height)sp.%(ext)s"
 PLAYLIST_VIDEO_DIR="$VIDEO_DIR/%(playlist_title)s"
@@ -68,11 +75,26 @@ else
     --button="✖ Exit":1)
 fi
 
+# 🔧 Fungsi validasi URL
+validate_url() {
+    local url="$1"
+
+    # kalau kosong → gagal
+    if [ -z "$url" ]; then
+        return 1
+    fi
+
+    # cek semua regex
+    if [[ "$url" =~ $YTURL || "$url" =~ $FBURL || "$url" =~ $IGURL || "$url" =~ $XURL ]]; then
+        return 0   # ✅ valid
+    else
+        return 1   # ❌ invalid
+    fi
+}
+
 # 🔎 Cek dan validasi URL
-if [ -z "$URL" ]; then
-    exit 0
-elif [[ ! "$URL" =~ ^https?://(www\.)?(youtube\.com|youtu\.be)/ ]]; then
-    notify-send -i "$ICON_FAIL" "Invalid URL" "Only YouTube links are allowed!"
+if ! validate_url "$URL"; then
+    notify-send -i "$ICON_FAIL" "✖ Invalid URL" "The URL you entered is not supported."
     exit 1
 fi
 
@@ -368,13 +390,13 @@ music_download() {
                 download_file "mp3" "$MUSIC_DIR" "$MUSIC_NAME" "mp3"
                 ;;
             "Download Playlist Mp3") 
-                download_file "playlistmp3" "$MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "mp3" 
+                download_file "playlistmp3" "$PLAYLIST_MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "mp3" 
                 ;;
             "Download Flac")
                 download_file "flac" "$MUSIC_DIR" "$MUSIC_NAME" "flac" 
                 ;;
             "Download Playlist Flac") 
-                download_file "playlistflac" "$MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "flac"
+                download_file "playlistflac" "$PLAYLIST_MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "flac"
                 ;;
             "Back") 
                 return 
@@ -450,6 +472,39 @@ play_select() {
     fi
 }
 
+all_platform() {
+    while true; do
+        all_platform=$(yad --list --title="Options" \
+            --column="Option Download" \
+            "Download Videos/Reels" \
+            "Download Sound" \
+            "Back" \
+            --width=600 --height=320 \
+            --button="✔ Ok":0 --button="✖ Exit":1 \
+            --print-column=1)
+        
+        all_platform="${all_platform%|}"
+        
+        if [[ -z "$all_platform" || "$all_platform" == "✖ Exit" ]]; then
+            echo "User ✖ Canceled"
+            exit 0
+        fi   
+        
+        case "$all_platform" in
+            "Download Videos/Reels")
+                download_file "best" "$VIDEO_DIR" "$VIDEO_NAME" "mp4"
+                ;;
+            "Download Sound")
+                download_file "mp3" "$MUSIC_DIR" "$MUSIC_NAME" "mp3"
+                ;;
+            "Back")
+                return 
+                ;;
+        esac
+    done
+    exit 1
+}
+
 size_check() {
     : > "/tmp/size.log"
    yt-dlp -F "$URL" | tee "/tmp/size.log" &
@@ -461,6 +516,7 @@ while true; do
     options=$(yad --list --no-multiple \
         --title="Download Options" \
         --column="Option List" \
+        "Download IG/FB/X Videos/Reels" \
         "Download Videos webm" \
         "Download Videos mp4" \
         "Download Playlist Video" \
@@ -481,6 +537,9 @@ while true; do
     
     # Proses pilihan
     case "$options" in
+        "Download IG/FB/X Videos/Reels")
+            all_platform
+            ;;
         "Download Videos webm")
             download_videos_webm
             ;;
