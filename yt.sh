@@ -37,7 +37,7 @@ VIDEO_NAME="%(title)s_%(height)sp.%(ext)s"
 PLAYLIST_VIDEO_NAME="%(playlist_index)02d - %(title)s_%(height)sp.%(ext)s"
 PLAYLIST_VIDEO_DIR="$VIDEO_DIR/%(playlist_title)s"
 REELS_DIR="$VIDEO_DIR/Reels"
-REELS_NAME="%(extractor)s_(id)s.%(ext)s"
+REELS_NAME="%(extractor)s_%(id)s.%(ext)s"
 
 # Pastikan folder ada
 [ ! -d "$ICON_DIR" ] && mkdir -p "$ICON_DIR"
