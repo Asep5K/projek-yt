@@ -1,11 +1,10 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # ============================================================
 # Script created by Asep5K
 # 🎬 YouTube Downloader & Player (Bash + yad)
 # ============================================================
 
-# Link icons
 ICON_SUCCESS_URL="https://github.com/Asep5K/projek-yt/blob/main/screenshot/2.jpg?raw=true"
 ICON_FAIL_URL="https://github.com/Asep5K/projek-yt/blob/main/screenshot/1.jpg?raw=true"
 
@@ -37,6 +36,8 @@ PLAYLIST_MUSIC_DIR="$MUSIC_DIR/%(playlist_title)s"
 VIDEO_NAME="%(title)s_%(height)sp.%(ext)s"
 PLAYLIST_VIDEO_NAME="%(playlist_index)02d - %(title)s_%(height)sp.%(ext)s"
 PLAYLIST_VIDEO_DIR="$VIDEO_DIR/%(playlist_title)s"
+REELS_DIR="$VIDEO_DIR/Reels"
+REELS_NAME="%(extractor)s_(id)s.%(ext)s"
 
 # Pastikan folder ada
 [ ! -d "$ICON_DIR" ] && mkdir -p "$ICON_DIR"
@@ -70,7 +71,7 @@ else
     # Input URL
     URL=$(yad --entry \
     --title="Enter YouTube URL" \
-    --text="Paste YouTube link here:" \
+    --text="Paste link in here:" \
     --width=500 --button="✔ Ok":0 \
     --button="✖ Exit":1)
 fi
@@ -81,7 +82,7 @@ validate_url() {
 
     # kalau kosong → gagal
     if [ -z "$url" ]; then
-        return 1
+        exit 0
     fi
 
     # cek semua regex
@@ -159,18 +160,18 @@ download_file() {
     local outdir="$2" # folder tujuan
     local name="$3"   # nama file
     local format="$4" # audio: mp3/flac, video: mp4/webm
-
+ 
     notify-send -i "$ICON_SUCCESS" "Downloading..." "$type"
     log showlog
-
+ 
     if [ "$format" = "mp3" ] || [ "$format" = "flac" ]; then
         # 🔊 Download audio
         log ytlog yt-dlp -x --audio-format "$format" --audio-quality 0 \
             -o "$outdir/$name" "$URL"
-
+ 
     elif [ "$format" = "mp4" ] || [ "$format" = "webm" ]; then
         # 📺 Download video
-        if [ "$type" = "best" ]; then
+        if [ "$type" = "best" ] || [ "$type" = "Video" ]; then
             log ytlog yt-dlp -f "bestvideo+bestaudio/best" \
                 --merge-output-format "$format" \
                 -o "$outdir/$name" "$URL"
@@ -182,9 +183,9 @@ download_file() {
     else
         notify-send -i "$ICON_FAIL" "✖ Unknown format" "$format"
     fi
-
+ 
     local status=$?   # simpan exit status yt-dlp
-
+ 
     if [ $status -eq 0 ]; then
         log hideview
         latest_file=$(ls -t "$outdir" | head -n 1)  # ambil file terbaru
@@ -492,10 +493,10 @@ all_platform() {
         
         case "$all_platform" in
             "Download Videos/Reels")
-                download_file "best" "$VIDEO_DIR" "$VIDEO_NAME" "mp4"
+                download_file "Video" "$REELS_DIR" "$REELS_NAME" "mp4"
                 ;;
             "Download Sound")
-                download_file "mp3" "$MUSIC_DIR" "$MUSIC_NAME" "mp3"
+                download_file "mp3" "$MUSIC_DIR" "$REELS_NAME" "mp3"
                 ;;
             "Back")
                 return 
