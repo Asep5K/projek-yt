@@ -94,13 +94,13 @@ pipx install yt-dlp
 ```
 ### 🔧 Tip for Linux users running the Termux CLI version
 
-If you want to reuse the Termux CLI script on Linux, you can:
+- If you want to reuse the Termux CLI script on Linux, you can:
 
--Change the download directory variable inside the script (DOWNLOAD_DIR=~/Videos/Downloads), or
+- Change the download directory variable inside the script (DOWNLOAD_DIR=~/Videos/Downloads), or
 
--Create a symlink so /sdcard points to your Linux home directory:
+- Create a symlink so /sdcard points to your Linux home directory:
 ```bash
-  ln -s ~/Videos /sdcard
+  ln -s ~ /sdcard
 ```
 ---
 
