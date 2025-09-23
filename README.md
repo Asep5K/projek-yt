@@ -65,7 +65,7 @@ sudo zypper install bash mpv yad wget libnotify-tools pipx
 pipx install yt-dlp
 ```
 ### Alternative (Manual Install from Source)
--If you don’t want to use `pipx`, you can build [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) from source, or use the version I provide and copy it to a directory in your PATH.
+- If you don’t want to use `pipx`, you can build [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) from source, or use the version I provide and copy it to a directory in your PATH.
 
 2. Clone the repository:
    ```bash
@@ -76,8 +76,9 @@ pipx install yt-dlp
    ```
 - Or, you can copy the script to a directory in your PATH, or bind it to a keybinding for easier access.
 
-### For termux
-1. Dowload from pkg termux
+## 📱 Termux (CLI Version)
+
+1. Install from Termux package manager:
 ```bash
   pkg update && pkg upgrade && pkg install yt-dlp ffmpeg
   git clone https://github.com/Asep5K/projek-yt.git
@@ -114,3 +115,15 @@ pipx install yt-dlp
 ![](./screenshot/play.png)  
 ![](./screenshot/log.png)
 ---
+
+## 🤝 Contributing & Feedback  
+
+This project is still a learning exercise, and I’m new to scripting/programming.  
+If you find any bugs, issues, or have suggestions for improvements, please let me know!  
+
+- ⭐ If you like this project, consider giving it a star on GitHub.  
+- 🐞 Found a bug? Please open an [issue](../../issues).  
+- 💡 Have ideas for new features? Feel free to suggest them.  
+- 🔧 Want to help improve the code? Pull requests are always welcome.  
+
+Every bit of feedback or contribution is greatly appreciated. 🙌  
