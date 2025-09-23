@@ -41,50 +41,25 @@ fi
 
 check_internet
 
-# directory check
-check_dir() {
-    local dir=$1
-
-    if [ "$dir" = "audio" ]; then
-        if [ ! -d "$HOME/Music" ] || [ ! -L "$HOME/Music" ]; then
-            mkdir -p "$INTERNAL_MUSIC_DIR"
-            ln -sf "$INTERNAL_MUSIC_DIR" "$HOME/Music"
-        fi
-    else
-        if [ ! -d "$HOME/Videos" ] || [ ! -L "$HOME/Videos" ]; then
-            mkdir -p "$INTERNAL_VIDEOS_DIR"
-            ln -sf "$INTERNAL_VIDEOS_DIR" "$HOME/Videos"
-        fi
-    fi
-}
-
-# validation url 
+# validation function
 validate_url() {
     local url="$1"
     [ -z "$url" ] && return 1
-
     local combined_regex="($YTURL|$FBURL|$IGURL|$XURL)"
-    if [[ "$url" =~ $combined_regex ]]; then
-        return 0   # valid
-    else
-        return 1   # invalid
-    fi
+    [[ "$url" =~ $combined_regex ]]
 }
 
-# URL
-while true; do
-    if [ -n "$URL" ] && ! validate_url "$URL"; then
-        echo "✖ Invalid URL, try again"
-    fi
-    read -p "Enter URL: " URL
-    if validate_url "$URL"; then
-        break
-    fi
-done
-
-if [[ ! "$URL" ]]; then
-    clear
-    read -p "enter url: " URL
+# check initial URL
+if ! validate_url "$URL"; then
+    while true; do
+	    echo "Press CTRL+C to Exit"
+        read -p "Enter URL: " URL
+        if validate_url "$URL"; then
+            break
+        else
+            echo "✖ Invalid URL, try again"
+        fi
+    done
 fi
 
 # download function
