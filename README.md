@@ -65,7 +65,7 @@ sudo zypper install bash mpv yad wget libnotify-tools pipx
 pipx install yt-dlp
 ```
 ### Alternative (Manual Install from Source)
-If you don’t want to use `pipx`, you can build [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) from source, or use the version I provide and copy it to a directory in your PATH.
+-If you don’t want to use `pipx`, you can build [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) from source, or use the version I provide and copy it to a directory in your PATH.
 
 2. Clone the repository:
    ```bash
@@ -91,6 +91,16 @@ If you don’t want to use `pipx`, you can build [`yt-dlp`](https://github.com/y
 - Or run the interactive menu without a URL
 ```bash 
   ytd
+```
+### 🔧 Tip for Linux users running the Termux CLI version
+
+If you want to reuse the Termux CLI script on Linux, you can:
+
+-Change the download directory variable inside the script (DOWNLOAD_DIR=~/Videos/Downloads), or
+
+-Create a symlink so /sdcard points to your Linux home directory:
+```bash
+  ln -s ~/Videos /sdcard
 ```
 ---
 
