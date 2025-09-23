@@ -2,6 +2,7 @@
 
 [![Made with Bash](https://img.shields.io/badge/Made%20with-Bash-blue?logo=gnu-bash)](https://www.gnu.org/software/bash/)
 [![yt-dlp](https://img.shields.io/badge/yt--dlp-powered-orange)](https://github.com/yt-dlp/yt-dlp)
+[![Termux](https://img.shields.io/badge/Termux-supported-brightgreen)](https://termux.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
 > **Script created by Asep5K**
@@ -28,11 +29,13 @@ A lightweight Bash script with **yad menus** to download videos, music, or play 
 ## 🛠️ Requirements  
 
 - `bash`  
-- [`yt-dlp`](https://github.com/yt-dlp/yt-dlp)  
-- [`mpv`](https://github.com/mpv-player/mpv)  
-- [`yad`](https://github.com/v1cont/yad)  
-- [`wget`](https://github.com/wget/wget) (for connectivity check)  
-- `notify-send` (for desktop notifications)  
+- [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) – Download videos and audio from YouTube and other platforms.  
+- [`ffmpeg`](https://github.com/FFmpeg/FFmpeg) – Handles video/audio format conversion and merging.  
+- [`mpv`](https://github.com/mpv-player/mpv) – Media player for previewing or playing downloaded content.  
+- [`yad`](https://github.com/v1cont/yad) – Provides graphical dialog menus for interactive script navigation.  
+- [`wget`](https://github.com/wget/wget) – Downloads files.  
+- [`notify-send`](https://gitlab.gnome.org/GNOME/libnotify) – Sends desktop notifications for download or playback status.
+  
 ---
 
 ## 🚀 Installation & Usage
@@ -62,7 +65,7 @@ sudo zypper install bash mpv yad wget libnotify-tools pipx
 pipx install yt-dlp
 ```
 ### Alternative (Manual Install from Source)
-If you don’t want to use `pipx`, you can build [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) from source
+If you don’t want to use `pipx`, you can build [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) from source, or use the version I provide and copy it to a directory in your PATH.
 
 2. Clone the repository:
    ```bash
@@ -71,6 +74,25 @@ If you don’t want to use `pipx`, you can build [`yt-dlp`](https://github.com/y
    chmod +x yt.sh
    ./yt.sh
    ```
+- Or, you can copy the script to a directory in your PATH, or bind it to a keybinding for easier access.
+
+### For termux
+1. Dowload from pkg termux
+```bash
+  pkg update && pkg upgrade && pkg install yt-dlp ffmpeg
+  git clone https://github.com/Asep5K/projek-yt.git
+  cp projek-yt/yt-termux.sh $PREFIX/bin/ytd
+  chmod +x $PREFIX/bin/ytd
+```
+- Run the script with a direct URL
+```bash
+  ytd https://example.com/123456
+```
+- Or run the interactive menu without a URL
+```bash 
+  ytd
+```
+---
 
 ## 🎥 Demo & Screenshots
 
