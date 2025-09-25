@@ -9,6 +9,7 @@ MUSIC_DIR="/sdcard/Music/Downloads"
 VIDEO_DIR="/sdcard/Videos/Downloads"
 
 # Url
+YT_DLP_github="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
 YTURL='^https?://(www\.)?(youtube\.com|youtu\.be)/[A-Za-z0-9._?&=-]+'
 IGURL='^https?://(www\.)?instagram\.com/reels?/[A-Za-z0-9_-]+'
 FBURL='^https?://(www\.)?(web\.)?facebook\.com/((share/(r|v)/[A-Za-z0-9_-]+)|(reel/[A-Za-z0-9_-]+))'
@@ -32,17 +33,129 @@ check_internet() {
     fi
 }
 
+package_install() {
+    local package="$1"
+    if command -v "$package" >/dev/null 2>&1; then
+        echo "✔ $package is already installed: $(command -v "$package")"
+        return 0
+    fi
+
+    echo "⚠ $package not found, installing..."
+
+    if command -v apt >/dev/null 2>&1; then
+        sudo apt update && sudo apt install -y "$package"
+    elif command -v pacman >/dev/null 2>&1; then
+        sudo pacman -S --noconfirm "$package"
+    elif command -v dnf >/dev/null 2>&1; then
+        sudo dnf install -y "$package"
+    elif command -v zypper >/dev/null 2>&1; then
+        sudo zypper install -y "$package"
+    elif command -v pkg >/dev/null 2>&1; then
+        pkg install -y "$package"
+    else
+        echo "Error: No supported package manager found."
+        echo "Please install $package manually"
+        return 1
+    fi
+}
+
+package_install_ffmpeg() {
+    package_install ffmpeg
+}
+
+yt-dlp_install() {
+    dir="$HOME/.local/bin"
+    name="yt-dlp"
+
+    # Download yt-dlp
+    if command -v curl >/dev/null 2>&1; then
+        mkdir -p "$dir"
+        curl -L "$YT_DLP_github" -o "$dir/$name"
+    elif command -v wget >/dev/null 2>&1; then
+        mkdir -p "$dir"
+        wget "$YT_DLP_github" -O "$dir/$name"
+    else 
+        echo "Error: curl or wget not found"
+        echo "Installing wget..."
+        package_install "wget" || return 1
+        wget "$YT_DLP_github" -O "$dir/$name"
+    fi
+    
+    if [ ! -f "$dir/$name" ]; then
+        echo "Download failed!"
+        return 1
+    fi
+
+    chmod +x "$dir/$name"
+    export PATH="$dir:$PATH"
+
+    # Ensure $dir is in PATH
+    case ":$PATH:" in
+        *":$dir:"*) 
+            echo "$dir is already in PATH"
+            ;;
+        *)
+            echo "Adding $dir to PATH..."
+
+            shell_name=$(basename "$SHELL")
+
+            case "$shell_name" in
+                bash)
+                    echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$HOME/.bashrc"
+                    ;;
+                zsh)
+                    echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$HOME/.zshrc"
+                    ;;
+                fish)
+                    echo "set -U fish_user_paths \$HOME/.local/bin \$fish_user_paths" >> "$HOME/.config/fish/config.fish"
+                    ;;
+                *)
+                    echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$HOME/.profile"
+                    ;;
+            esac
+
+            echo "PATH updated. Please restart your shell or run 'source' on your shell config file."
+            ;;
+    esac
+
+    echo "✔ yt-dlp installed at $dir/$name"
+    echo "Check version with: yt-dlp --version"
+}
+
+check_or_install() {
+    local cmd="$1"
+    local install_func="$2"  # fungsi untuk install kalau tidak ada
+
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "⚠ $cmd not found!"
+        echo "Installing..."
+        $install_func
+    else
+        echo "✔ $cmd is already installed"
+    fi
+}
+
+
+check_or_install ffmpeg package_install_ffmpeg
+check_or_install yt-dlp yt-dlp_install
+
+yt-dlp_update() {
+    if yt-dlp -U; then
+        echo "✔ yt-dlp updated successfully"
+    else
+        echo "✖ Update failed. If you installed yt-dlp via a package manager, use that instead."
+    fi
+}
+
 # yt-dlp check
 if ! command -v yt-dlp >/dev/null 2>&1; then
-    # kalo ga ada, kirim notif
-    echo "⚠ Warning" "yt-dlp not found!"
-    exit 1
+    echo "⚠ yt-dlp not found!"
+    echo "Installing..."
+    yt-dlp_install
 fi
 
 # echo "Checking conection..."
 check_internet
-
-yt-dlp -U >/dev/null 2>&1 &
 
 # validation function
 validate_url() {
@@ -55,8 +168,8 @@ validate_url() {
 if [ -z "$URL" ] || ! validate_url "$URL"; then
     # Mode 2: URL tidak ada atau invalid → tampil prompt
     while true; do
-        read -p "Enter URL (or 'q' to quit): " URL
-        [ "$URL" = "q" ] && exit 0
+        read -p "Enter URL (or 'e' to Exit): " URL
+        [ "$URL" = "e" ] && exit 0
         if validate_url "$URL"; then
             break
         else
@@ -67,8 +180,8 @@ fi
 
 new_url() {
         while true; do
-        read -p "Enter new URL (or 'q' to quit): " URL
-            [ "$URL" = "q" ] && exit 0
+        read -p "Enter new URL (or 'e' to Exit): " URL
+            [ "$URL" = "e" ] && exit 0
             if validate_url "$URL"; then
                 break
             else
@@ -134,13 +247,14 @@ download_videos_webm() {
 6. 2k (1440p)
 7. 4k (2160p)
 8. Best Resolution
-9. Back
-10. New url
-11. Exit
+b. Back
+n. New url
+e. Exit
 EOF
         
-        read -p "Enter your choice: " choice
-
+        read -n 1 -p "Enter your choice: " choice
+	echo ""
+	
         case "$choice" in
             1) download_file 240 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
             2) download_file 360 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
@@ -150,9 +264,9 @@ EOF
             6) download_file 1440 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
             7) download_file 2160 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
             8) download_file "best" "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            9) clear; return ;;  # Back
-            10) new_url ;;
-            11)  echo "Exiting..."; clear; exit 0 ;;
+            b) clear; return ;;  # Back
+            n) new_url ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -172,12 +286,13 @@ download_videos_mp4() {
 6. 2k (1440p)
 7. 4k (2160p)
 8. Best Resolution
-9. Back
-10. New url
-11. Exit            
+b. Back
+n. New url
+e. Exit            
 EOF
         
-        read -p "Enter your choice: " choice
+        read -n 1 -p "Enter your choice: " choice
+	echo ""
 
         case "$choice" in
             1) download_file 240 "$VIDEO_DIR" "$VIDEO_NAME" "mp4" ;;
@@ -188,9 +303,9 @@ EOF
             6) download_file 1440 "$VIDEO_DIR" "$VIDEO_NAME" "mp4" ;;
             7) download_file 2160 "$VIDEO_DIR" "$VIDEO_NAME" "mp4" ;;
             8) download_file "best" "$VIDEO_DIR" "$VIDEO_NAME" "mp4" ;;
-            9) clear; return ;;  # Back
-            10) new_url ;;
-            11) echo "Exiting..."; clear; exit 0 ;;
+            b) clear; return ;;  # Back
+            n) new_url ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -206,21 +321,22 @@ music_download() {
 2. Flac
 3. Playlist Mp3
 4. Playlist Flac
-5. Back
-6. New url
-7. Exit
+b. Back
+n. New url
+e. Exit
 EOF
 
-        read -p "Enter your choice: " choice
+        read -n 1 -p "Enter your choice: " choice
+	echo ""
 
         case "$choice" in
             1) download_file "mp3" "$MUSIC_DIR" "$MUSIC_NAME" "mp3" ;;
             2) download_file "flac" "$MUSIC_DIR" "$MUSIC_NAME" "flac" ;;
             3) download_file "playlistmp3" "$PLAYLIST_MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "mp3" ;;
             4) download_file "playlistflac" "$PLAYLIST_MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "flac" ;;
-            5) clear; return ;;  # Back
-            6) new_url ;;
-            7) echo "Exiting..."; clear; exit 0 ;;
+            b) clear; return ;;  # Back
+            n) new_url ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -240,12 +356,13 @@ playlist_download() {
 6. 2K (1440p)
 7. 4K (2160p)
 8. Best Resolution
-9. Back
-10. New url
-11. Exit
+b. Back
+n. New url
+e. Exit
 EOF
 
-        read -p "Enter your choice: " choice
+        read -n 1 -p "Enter your choice: " choice
+	echo ""
 
         case "$choice" in
             1) download_file 240 "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME" ;;
@@ -256,9 +373,9 @@ EOF
             6) download_file 1440 "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME" ;;
             7) download_file 2160 "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME" ;;
             8) download_file "best" "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME" ;;
-            9) clear; return ;;  # Back
-            10) new_url ;;
-            11) echo "Exiting..."; clear; exit 0 ;;
+            b) clear; return ;;  # Back
+            n) new_url ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -272,19 +389,20 @@ all_platform() {
         cat << EOF
 1. Download Reels
 2. Download Audio
-3. Back
-4. New url
-5. Exit
+b. Back
+n. New url
+e. Exit
 EOF
 
-        read -p "Enter your choice: " choice
+        read -n 1 -p "Enter your choice: " choice
+	echo ""
 
         case "$choice" in
             1) download_file "Reels" "$REELS_DIR" "$REELS_NAME" "mp4" ;;
             2) download_file "audio" "$MUSIC_DIR" "$REELS_NAME" "audio" ;;
-            3) clear; return ;;  # Back
-            4) new_url ;;
-            5) echo "Exiting ..."; clear; exit 0 ;;
+            b) clear; return ;;  # Back
+            n) new_url ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -312,42 +430,44 @@ play_select() {
         echo "Playing ${1}p auto fallback"
         echo "Please wait..."
     fi
+
 }
 
 play() {
     clear
     while true; do
-        echo "Video Playlist Options"
+        echo "Play Options"
         cat << EOF
-1. 240p
-2. 360p
-3. 480p
-4. 720p
-5. 1080p
-6. 2K (1440p)
-7. 4K (2160p)
-8. Best Resolution
-9. Back
-10. Exit
-11. New url
-12. Exit
+1. Music
+2. 240p
+3. 360p
+4. 480p
+5. 720p
+6. 1080p
+7. 2K (1440p)
+8. 4K (2160p)
+9. Best Resolution
+b. Back
+n. New url
+e. Exit
 EOF
 
-     read -p "Enter your choice: " choice
+     read -n 1 -p "Enter your choice: " choice
+     echo ""
 
         case "$choice" in
-            1) play_select "music" && exit 0 ;;
-            2) play_select 240 && exit 0 ;;
-            3) play_select 360 && exit 0 ;;
-            4) play_select 480 && exit 0 ;;
-            5) play_select 720 && exit 0 ;;
-            6) play_select 1080 && exit 0 ;; 
-            7) play_select 1440 && exit 0 ;;
-            8) play_select 2160 && exit 0 ;;
-            9) play_select "best" && exit 0 ;;
-            10) clear; return ;;
-            11) new_url ;;
-            12) exit 0 ;;
+            1) play_select "music" >/dev/null 2>&1 ;;
+            2) play_select 240 >/dev/null 2>&1 ;;
+            3) play_select 360 >/dev/null 2>&1 ;;
+            4) play_select 480 >/dev/null 2>&1 ;;
+            5) play_select 720 >/dev/null 2>&1 ;;
+            6) play_select 1080 >/dev/null 2>&1 ;; 
+            7) play_select 1440 >/dev/null 2>&1 ;;
+            8) play_select 2160 >/dev/null 2>&1 ;;
+            9) play_select "best" >/dev/null 2>&1 ;;
+            b) clear; return ;;
+            n) new_url ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac  
     done
@@ -355,8 +475,7 @@ EOF
 
 # menu func
 while true; do
-    # clear
-    echo "Download Options"
+	echo "Download Options"
     cat << EOF
 1. Download IG/FB/X Video Reels
 2. Download Video webm (⚠ Not recommended)
@@ -365,11 +484,14 @@ while true; do
 5. Download Music mp3/flac
 6. Play Video/Music (Linux Desktop only) 
 7. Check Download Size
-8. Exit
-9. New url
+n. New url
+u. Update yt-dlp
+e. Exit
 EOF
 
-    read -p "Enter your choice: " choice
+	read -n 1 -p "Enter your choice: " choice
+	echo ""
+
         case "$choice" in
             1) all_platform ;;
             2) download_videos_webm ;;
@@ -378,8 +500,9 @@ EOF
             5) music_download ;;
             6) play ;;
             7) size_check ;;
-            8) echo "Exiting..."; clear; exit 0 ;;
-            9) new_url ;;
+            n) new_url ;;
+            u) yt-dlp_update ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
 done
