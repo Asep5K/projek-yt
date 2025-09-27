@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OUTPUT="yt-termux.sh"
+OUTPUT="yt-cli.sh"
 SRC=(
   lib/variable.sh
   lib/ascii.sh
