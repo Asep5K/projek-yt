@@ -1,5 +1,4 @@
-# 🎬 YouTube Downloader & Player (Bash + yad)  
-
+## 🎬 YouTube Downloader & Player (Bash CLI + GUI with yad)
 [![Made with Bash](https://img.shields.io/badge/Made%20with-Bash-blue?logo=gnu-bash)](https://www.gnu.org/software/bash/)
 [![yt-dlp](https://img.shields.io/badge/yt--dlp-powered-orange)](https://github.com/yt-dlp/yt-dlp)
 [![Termux](https://img.shields.io/badge/Termux-supported-brightgreen)](https://termux.com/)
@@ -7,15 +6,16 @@
 
 > **Script created by Asep5K**
 
+A lightweight Bash script for downloading videos, Reels/Shorts/Clips, music, and playing content from YouTube and supported platforms.  
 
-A lightweight Bash script with **yad menus** to download videos, music, or play content from YouTube. Supports playlists, multiple resolutions, and audio formats (MP3/FLAC).  
+- **CLI Version**: Terminal-based interactive menus for Linux & Termux.  
+- **GUI Version**: Uses **yad** for graphical dialog menus on Linux desktop.  
+
+Supports playlists, multiple resolutions, and audio formats (MP3/FLAC).
 
 🔗 GitHub Repository: https://github.com/Asep5K/projek-yt
-
 ---
-
 ## ⚡ Features  
-
 - Download videos in multiple resolutions: 240p → 4K, or best available.  
   > ⚠️ Note: I have not tested downloads above 1080p, so I cannot guarantee they work. Testing higher resolutions was not possible due to certain limitations.  
 - Download audio only: MP3 or FLAC, single or playlist.  
@@ -23,9 +23,7 @@ A lightweight Bash script with **yad menus** to download videos, music, or play 
 - Choose specific video/audio format for download.  
 - yad-based interactive menu for easy navigation.  
 - Desktop notifications for download/playback progress.  
-
 ---
-
 > ⚠️ Disclaimer: I'm a beginner, so the scripts might have some errors.  
 > Use at your own risk, and feel free to give feedback!
 
@@ -38,9 +36,7 @@ A lightweight Bash script with **yad menus** to download videos, music, or play 
 - [`yad`](https://github.com/v1cont/yad) – Provides graphical dialog menus for interactive script navigation.  
 - [`wget`](https://github.com/wget/wget) – Downloads files.  
 - [`notify-send`](https://gitlab.gnome.org/GNOME/libnotify) – Sends desktop notifications for download or playback status.
-  
 ---
-
 ## 🚀 Installation & Usage
 
 1. Install dependencies (choose your distro):
@@ -85,48 +81,36 @@ pipx install yt-dlp
 ```bash
   pkg update && pkg upgrade && pkg install yt-dlp ffmpeg
   git clone https://github.com/Asep5K/projek-yt.git
-  cp projek-yt/yt-termux.sh $PREFIX/bin/ytd
-  chmod +x $PREFIX/bin/ytd
+  cp projek-yt/yt-cli.sh $PREFIX/bin/yt-cli
+  chmod +x $PREFIX/bin/yt-cli
 ```
 - Run the script with a direct URL
 ```bash
-  ytd https://example.com/123456
+  yt-cli https://example.com/123456
 ```
 - Or run the interactive menu without a URL
 ```bash 
-  ytd
+  yt-cli
 ```
-### 🔧 Tip for Linux users running the Termux CLI version
-
-- If you want to reuse the Termux CLI script on Linux, you can:
-
-- Change the download directory variable inside the script (DOWNLOAD_DIR=~/Videos/Downloads), or
-
-- Create a symlink so /sdcard points to your Linux home directory:
-```bash
-  ln -s ~ /sdcard
-```
----
-
 ## Notes
-The `yt-termux.sh` script will automatically install all required packages and works on all Linux distributions.  
+The `yt-cli.sh` script will automatically install all required packages and works on all Linux distributions.  
 Simply run:
 
 ```bash
-./yt-termux.sh
+./yt-cli.sh
 ```
-- The Makefile and build.sh are provided only for building yt-termux.sh.
+- The Makefile and build.sh are provided only for building yt-cli.sh.
 ---
 
-## 🎥 Demo & Screenshots
+## 🎥 Demo & Screenshots (GUI version)
 
-![Demo](./screenshot/demo.gif)  
-![](./screenshot/url.png)  
-![](./screenshot/option.png)  
-![](./screenshot/music.png)  
-![](./screenshot/download.png)  
-![](./screenshot/play.png)  
-![](./screenshot/log.png)
+![Demo](./screenshot/demo.gif) - Main menu demo
+![URL input](./screenshot/url.png) - Enter video URL
+![Options](./screenshot/option.png) - Download/playback options
+![Music download](./screenshot/music.png) - Music download menu
+![Downloading](./screenshot/download.png) - Download in progress
+![Playing](./screenshot/play.png) - Playing video/audio
+![Log](./screenshot/log.png) - Activity log
 ---
 
 ## 🤝 Contributing & Feedback  
