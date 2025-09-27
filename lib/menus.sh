@@ -1,44 +1,3 @@
-# Semua menu dipindah ke sini biar rapi
-download_videos_webm() {
-    clear
-    Asep5K
-    echo "⚠ Warning: Downloading webm may fail during merge. (Not recommended)"
-    while true; do
-        echo "[Video Options (WEBM)]"
-        cat << EOF
-1. 240p
-2. 360p
-3. 480p
-4. 720p
-5. 1080p
-6. 2k (1440p)
-7. 4k (2160p)
-8. Best Resolution
-b. Back
-n. New url
-e. Exit
-EOF
-        
-        read -n 1 -p "Enter your choice: " choice
-	echo ""
-	
-        case "$choice" in
-            1) download_file 240 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            2) download_file 360 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            3) download_file 480 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            4) download_file 720 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            5) download_file 1080 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            6) download_file 1440 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            7) download_file 2160 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            8) download_file "best" "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            b) clear; return ;;  # Back
-            n) new_url ;;
-            e) exit 0 ;;
-            *) echo "Invalid choice, try again!" ;;
-        esac
-    done
-}
-
 # video mp4 func
 download_videos_mp4() {
     clear
@@ -157,8 +116,8 @@ all_platform() {
     while true; do
         echo "[Download Options]"
         cat << EOF
-1. Download Reels
-2. Download Audio
+1. Reels
+2. Audio
 b. Back
 n. New url
 e. Exit
@@ -184,13 +143,13 @@ main_menu() {
         echo "[Download Options]"
         cat << EOF
 1. Reels / Shorts / Clips (Video & Audio)
-2. Download Video webm (⚠ Not recommended)
-3. Download Video mp4
-4. Download Video Playlist
-5. Download Music mp3/flac
-6. Play Video & Music
-7. Check Download Size
+2. Download Video mp4
+3. Download Video Playlist
+4. Download Music mp3/flac
+5. Play Video & Music
+6. Check Download Size
 n. New url
+c. Check for yt-dlp updates
 u. Update yt-dlp
 e. Exit
 EOF
@@ -199,13 +158,13 @@ EOF
         echo ""
         case "$choice" in
             1) all_platform ;;
-            2) download_videos_webm ;;
-            3) download_videos_mp4 ;;
-            4) playlist_download ;;
-            5) music_download ;;
-            6) play ;;
-            7) size_check ;;
+            2) download_videos_mp4 ;;
+            3) playlist_download ;;
+            4) music_download ;;
+            5) play ;;
+            6) size_check ;;
             n) new_url ;;
+            c) check_updates ;;
             u) yt-dlp_update ;;
             e) exit 0 ;;
         esac
