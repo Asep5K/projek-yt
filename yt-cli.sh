@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 clear
-set -euo pipefail
+set -e
 URL=$1
 
 # ==========================
@@ -22,9 +22,9 @@ MUSIC_NAME="%(artist)s - %(title)s.%(ext)s"
 PLAYLIST_MUSIC_NAME="%(playlist_index)02d - %(title)s.%(ext)s"
 PLAYLIST_MUSIC_DIR="$MUSIC_DIR/%(playlist_title)s"
 VIDEO_NAME="%(title)s_%(height)sp.%(ext)s"
-PLAYLIST_VIDEO_NAME="%(playlist_index)02d - %(title)s_%(height)s"p".%(ext)s"
+PLAYLIST_VIDEO_NAME="%(playlist)s/%(playlist_index)02d - %(title)s_%(height)s"p".%(ext)s"
 PLAYLIST_VIDEO_DIR="$VIDEO_DIR/%(playlist_title)s"
-REELS_DIR="$VIDEO_DIR/Reels"
+REELS_DIR="$VIDEO_DIR/%(extractor)s"
 REELS_NAME="%(extractor)s_%(id)s.%(ext)s"
 
 # Banner ASCII Art
@@ -37,6 +37,23 @@ Asep5K() {
 /_/  |_/____/\___/ .___/_____/_/ |_|  
                 /_/                   
 EOF
+}
+
+# check updates
+check_updates() {
+    clear
+    echo "🔎 Checking yt-dlp updates..."
+    current=$(yt-dlp --version)
+    latest=$(curl -s https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest \
+      | grep '"tag_name":' \
+      | cut -d '"' -f4)
+
+    if [ "$current" != "$latest" ]; then
+        echo "yt-dlp version: $current"
+        echo "New update version: $latest"
+    else
+        echo "yt-dlp version: $current"
+    fi
 }
 
 # Connection check
@@ -188,31 +205,33 @@ download_file() {
     local outdir="$2"
     local name="$3"
     local format="$4"
+    local extra_opts="--restrict-filenames --embed-metadata --embed-thumbnail"
 
     echo "Downloading $type... Please wait..."
 
-    if [ "$format" = "mp3" ] || [ "$format" = "flac" ]; then
-        yt-dlp -x --audio-format "$format" --audio-quality 0 \
-            -o "$outdir/$name" "$URL" --restrict-filenames
-    elif [ "$format" = "audio" ]; then
-        yt-dlp -t mp3 -o "$outdir/$name" "$URL" --restrict-filenames
-    elif [ "$format" = "mp4" ] || [ "$format" = "webm" ]; then
+    if [ "$format" = "flac" ]; then
+        yt-dlp -x --audio-format flac --audio-quality 0 \
+        --restrict-filenames --embed-thumbnail -o "$outdir/$name" "$URL"
+
+    elif [ "$format" = "mp3" ] || [ "$format" = "audio" ]; then
+        yt-dlp -t mp3 --audio-quality 0 \
+        $extra_opts -o "$outdir/$name" "$URL" 
+
+    elif [ "$format" = "mp4" ]; then
         if [ "$type" = "best" ] || [ "$type" = "Reels" ]; then
             yt-dlp -f "bv[vcodec^=avc1]+bestaudio / bv[vcodec^=av01]+bestaudio / best" \
-                --merge-output-format "$format" \
-                -o "$outdir/$name" "$URL" --restrict-filenames
+            -t "$format" $extra_opts -o "$outdir/$name" "$URL"
+        
         else
             yt-dlp -f "bv[height<=$type][vcodec^=avc1]+bestaudio / bv[height<=$type][vcodec^=av01]+bestaudio" \
-                --merge-output-format "$format" \
-                -o "$outdir/$name" "$URL" --restrict-filenames
+                -t "$format" $extra_opts -o "$outdir/$name" "$URL"
         fi
     else
         echo "✖ Unknown format $format"
     fi
 
     if [ $? -eq 0 ]; then
-        latest_file=$(ls -t "$outdir" | head -n 1)
-        echo "✔ Download finished: $latest_file"
+        echo "✔ Download finished."
     else
         echo "✖ Download Failed. Check the URL or network."
     fi
@@ -221,6 +240,7 @@ download_file() {
 # Show available formats/size
 size_check() {
     clear
+    Asep5K
     yt-dlp -F "$URL"
 }
 # Play video/music with mpv
@@ -273,47 +293,6 @@ EOF
         esac  
     done
 }
-# Semua menu dipindah ke sini biar rapi
-download_videos_webm() {
-    clear
-    Asep5K
-    echo "⚠ Warning: Downloading webm may fail during merge. (Not recommended)"
-    while true; do
-        echo "[Video Options (WEBM)]"
-        cat << EOF
-1. 240p
-2. 360p
-3. 480p
-4. 720p
-5. 1080p
-6. 2k (1440p)
-7. 4k (2160p)
-8. Best Resolution
-b. Back
-n. New url
-e. Exit
-EOF
-        
-        read -n 1 -p "Enter your choice: " choice
-	echo ""
-	
-        case "$choice" in
-            1) download_file 240 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            2) download_file 360 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            3) download_file 480 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            4) download_file 720 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            5) download_file 1080 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            6) download_file 1440 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            7) download_file 2160 "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            8) download_file "best" "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
-            b) clear; return ;;  # Back
-            n) new_url ;;
-            e) exit 0 ;;
-            *) echo "Invalid choice, try again!" ;;
-        esac
-    done
-}
-
 # video mp4 func
 download_videos_mp4() {
     clear
@@ -432,8 +411,8 @@ all_platform() {
     while true; do
         echo "[Download Options]"
         cat << EOF
-1. Download Reels
-2. Download Audio
+1. Reels
+2. Audio
 b. Back
 n. New url
 e. Exit
@@ -459,13 +438,13 @@ main_menu() {
         echo "[Download Options]"
         cat << EOF
 1. Reels / Shorts / Clips (Video & Audio)
-2. Download Video webm (⚠ Not recommended)
-3. Download Video mp4
-4. Download Video Playlist
-5. Download Music mp3/flac
-6. Play Video & Music
-7. Check Download Size
+2. Download Video mp4
+3. Download Video Playlist
+4. Download Music mp3/flac
+5. Play Video & Music
+6. Check Download Size
 n. New url
+c. Check for yt-dlp updates
 u. Update yt-dlp
 e. Exit
 EOF
@@ -474,13 +453,13 @@ EOF
         echo ""
         case "$choice" in
             1) all_platform ;;
-            2) download_videos_webm ;;
-            3) download_videos_mp4 ;;
-            4) playlist_download ;;
-            5) music_download ;;
-            6) play ;;
-            7) size_check ;;
+            2) download_videos_mp4 ;;
+            3) playlist_download ;;
+            4) music_download ;;
+            5) play ;;
+            6) size_check ;;
             n) new_url ;;
+            c) check_updates ;;
             u) yt-dlp_update ;;
             e) exit 0 ;;
         esac
