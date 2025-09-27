@@ -65,7 +65,7 @@ sudo zypper install bash mpv yad wget libnotify-tools pipx
 pipx install yt-dlp
 ```
 ### Alternative (Manual Install from Source)
-- If you don’t want to use `pipx`, you can build [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) from source, or use the version I provide and copy it to a directory in your PATH.
+- If you don’t want to use `pipx`, you can build [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) from source.
 
 2. Clone the repository:
    ```bash
@@ -103,6 +103,16 @@ pipx install yt-dlp
 ```bash
   ln -s ~ /sdcard
 ```
+---
+
+## Notes
+The `yt-termux.sh` script will automatically install all required packages and works on all Linux distributions.  
+Simply run:
+
+```bash
+./yt-termux.sh
+```
+- The Makefile and build.sh are provided only for building yt-termux.sh.
 ---
 
 ## 🎥 Demo & Screenshots
