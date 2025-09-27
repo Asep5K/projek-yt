@@ -1,14 +1,32 @@
 #!/usr/bin/env bash
 
 clear
-set -e
+set -euo pipefail
 URL=$1
 
 # ==========================
-# Directories
+# Directories & Detect platform
 # ==========================
-MUSIC_DIR="/sdcard/Music/Downloads"
-VIDEO_DIR="/sdcard/Videos/Downloads"
+if [ -d "/sdcard" ]; then
+    # Likely Termux / Android
+    VIDEO_DIR="/sdcard/Videos/Downloads"
+    MUSIC_DIR="/sdcard/Music/Downloads"
+else
+    # Likely Linux Desktop
+    VIDEO_DIR="$HOME/Videos/Downloads"
+    MUSIC_DIR="$HOME/Music/Downloads"
+fi
+
+# Name
+MUSIC_NAME="%(artist)s - %(title)s.%(ext)s"
+PLAYLIST_MUSIC_NAME="%(playlist_index)02d - %(title)s.%(ext)s"
+PLAYLIST_MUSIC_DIR="$MUSIC_DIR/%(playlist_title)s"
+VIDEO_NAME="%(title)s_%(height)sp.%(ext)s"
+PLAYLIST_VIDEO_NAME="%(playlist_index)02d - %(title)s_%(height)s"p".%(ext)s"
+PLAYLIST_VIDEO_DIR="$VIDEO_DIR/%(playlist_title)s"
+REELS_DIR="$VIDEO_DIR/Reels"
+REELS_NAME="%(extractor)s_%(id)s.%(ext)s"
+
 # Banner ASCII Art
 Asep5K() {
     cat <<EOF
@@ -82,36 +100,65 @@ package_install_ffmpeg() { package_install ffmpeg; }
 package_install_mpv() { package_install mpv; }
 
 # Install yt-dlp (latest binary from GitHub)
+
 yt-dlp_install() {
     local dir="$HOME/.local/bin"
     local name="yt-dlp"
     local url="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
 
-    mkdir -p "$dir"
-
+    # Download yt-dlp
     if command -v curl >/dev/null 2>&1; then
+        mkdir -p "$dir"
         curl -L "$url" -o "$dir/$name"
     elif command -v wget >/dev/null 2>&1; then
+        mkdir -p "$dir"
         wget "$url" -O "$dir/$name"
     else 
         echo "Error: curl or wget not found"
-        package_install wget || return 1
+        echo "Installing wget..."
+        package_install "wget" || return 1
         wget "$url" -O "$dir/$name"
     fi
     
+    if [ ! -f "$dir/$name" ]; then
+        echo "Download failed!"
+        return 1
+    fi
+
     chmod +x "$dir/$name"
     export PATH="$dir:$PATH"
 
-    # Persist PATH
+    # Ensure $dir is in PATH
     case ":$PATH:" in
-        *":$dir:"*) ;;
+        *":$dir:"*) 
+            echo "$dir is already in PATH"
+            ;;
         *)
             echo "Adding $dir to PATH..."
-            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+
+            shell_name=$(basename "$SHELL")
+
+            case "$shell_name" in
+                bash)
+                    echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$HOME/.bashrc"
+                    ;;
+                zsh)
+                    echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$HOME/.zshrc"
+                    ;;
+                fish)
+                    echo "set -U fish_user_paths \$HOME/.local/bin \$fish_user_paths" >> "$HOME/.config/fish/config.fish"
+                    ;;
+                *)
+                    echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$HOME/.profile"
+                    ;;
+            esac
+
+            echo "PATH updated. Please restart your shell or run 'source' on your shell config file."
             ;;
     esac
 
     echo "✔ yt-dlp installed at $dir/$name"
+    echo "Check version with: yt-dlp --version"
 }
 
 # Install if missing
