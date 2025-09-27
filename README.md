@@ -26,6 +26,9 @@ A lightweight Bash script with **yad menus** to download videos, music, or play 
 
 ---
 
+> ⚠️ Disclaimer: I'm a beginner, so the scripts might have some errors.  
+> Use at your own risk, and feel free to give feedback!
+
 ## 🛠️ Requirements  
 
 - `bash`  
