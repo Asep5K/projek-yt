@@ -1,0 +1,85 @@
+# Package installer (cross-distro)
+package_install() {
+    local package="$1"
+    if command -v "$package" >/dev/null 2>&1; then
+        echo "✔ $package is already installed: $(command -v "$package")"
+        return 0
+    fi
+
+    echo "⚠ $package not found, installing..."
+
+    if command -v pkg >/dev/null 2>&1; then
+        pkg install -y "$package" 
+    elif command -v pacman >/dev/null 2>&1; then
+        sudo pacman -S --noconfirm "$package"
+    elif command -v dnf >/dev/null 2>&1; then
+        sudo dnf install -y "$package"
+    elif command -v zypper >/dev/null 2>&1; then
+        sudo zypper install -y "$package"
+    elif command -v apt >/dev/null 2>&1; then
+        sudo apt update && sudo apt install -y "$package"
+    else
+        echo "Error: No supported package manager found."
+        echo "Please install $package manually"
+        return 1
+    fi
+}
+
+# Wrapper functions
+package_install_ffmpeg() { package_install ffmpeg; }
+package_install_mpv() { package_install mpv; }
+
+# Install yt-dlp (latest binary from GitHub)
+yt-dlp_install() {
+    local dir="$HOME/.local/bin"
+    local name="yt-dlp"
+    local url="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
+
+    mkdir -p "$dir"
+
+    if command -v curl >/dev/null 2>&1; then
+        curl -L "$url" -o "$dir/$name"
+    elif command -v wget >/dev/null 2>&1; then
+        wget "$url" -O "$dir/$name"
+    else 
+        echo "Error: curl or wget not found"
+        package_install wget || return 1
+        wget "$url" -O "$dir/$name"
+    fi
+    
+    chmod +x "$dir/$name"
+    export PATH="$dir:$PATH"
+
+    # Persist PATH
+    case ":$PATH:" in
+        *":$dir:"*) ;;
+        *)
+            echo "Adding $dir to PATH..."
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+            ;;
+    esac
+
+    echo "✔ yt-dlp installed at $dir/$name"
+}
+
+# Install if missing
+check_or_install() {
+    local cmd="$1"
+    local install_func="$2"
+
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "⚠ $cmd not found! Installing..."
+        $install_func
+    else
+        echo "✔ $cmd is already installed"
+    fi
+}
+
+# Update yt-dlp
+yt-dlp_update() {
+    if yt-dlp -U; then
+        echo "✔ yt-dlp updated successfully"
+    else
+        echo "✖ Update failed. If you installed yt-dlp via a package manager, use that instead."
+    fi
+}
