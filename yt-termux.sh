@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
+clear
 set -e
-
 URL=$1
 
 # Downloads dir
@@ -10,20 +10,33 @@ VIDEO_DIR="/sdcard/Videos/Downloads"
 
 # Url
 YT_DLP_github="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
-YTURL='^https?://(www\.)?(youtube\.com|youtu\.be)/[A-Za-z0-9._?&=-]+'
-IGURL='^https?://(www\.)?instagram\.com/reels?/[A-Za-z0-9_-]+'
-FBURL='^https?://(www\.)?(web\.)?facebook\.com/((share/(r|v)/[A-Za-z0-9_-]+)|(reel/[A-Za-z0-9_-]+))'
-XURL='^https?://(www\.)?x\.com/([A-Za-z0-9_]+|i)/status/[0-9]+'
 
 # Name
 MUSIC_NAME="%(artist)s - %(title)s.%(ext)s"
 PLAYLIST_MUSIC_NAME="%(playlist_index)02d - %(title)s.%(ext)s"
 PLAYLIST_MUSIC_DIR="$MUSIC_DIR/%(playlist_title)s"
-VIDEO_NAME="%(title)s_%(height)s"p".%(ext)s"
+VIDEO_NAME="%(title)s_%(height)sp.%(ext)s"
 PLAYLIST_VIDEO_NAME="%(playlist_index)02d - %(title)s_%(height)s"p".%(ext)s"
 PLAYLIST_VIDEO_DIR="$VIDEO_DIR/%(playlist_title)s"
 REELS_DIR="$VIDEO_DIR/Reels"
 REELS_NAME="%(extractor)s_%(id)s.%(ext)s"
+
+Asep5K() {
+    cat <<EOF
+    ___                    ________ __
+   /   |  ________  ____  / ____/ //_/
+  / /| | / ___/ _ \/ __ \/___ \/ ,<   
+ / ___ |(__  )  __/ /_/ /___/ / /| |  
+/_/  |_/____/\___/ .___/_____/_/ |_|  
+                /_/                   
+EOF
+}
+Asep5K
+
+trap 'clear; cat << "EOF"
+Ｔｈａｎｋｓ  ｆｏｒ  ｕｓｉｎｇ
+EOF
+exit 0' EXIT
 
 # Connection check
 check_internet() {
@@ -42,16 +55,16 @@ package_install() {
 
     echo "⚠ $package not found, installing..."
 
-    if command -v apt >/dev/null 2>&1; then
-        sudo apt update && sudo apt install -y "$package"
+    if command -v pkg >/dev/null 2>&1; then
+        pkg install -y "$package" 
     elif command -v pacman >/dev/null 2>&1; then
         sudo pacman -S --noconfirm "$package"
     elif command -v dnf >/dev/null 2>&1; then
         sudo dnf install -y "$package"
     elif command -v zypper >/dev/null 2>&1; then
         sudo zypper install -y "$package"
-    elif command -v pkg >/dev/null 2>&1; then
-        pkg install -y "$package"
+    elif command -v apt >/dev/null 2>&1; then
+        sudo apt update && sudo apt install -y "$package"
     else
         echo "Error: No supported package manager found."
         echo "Please install $package manually"
@@ -61,6 +74,9 @@ package_install() {
 
 package_install_ffmpeg() {
     package_install ffmpeg
+}
+package_install_mpv() {
+    package_install mpv
 }
 
 yt-dlp_install() {
@@ -135,9 +151,9 @@ check_or_install() {
     fi
 }
 
-
-check_or_install ffmpeg package_install_ffmpeg
-check_or_install yt-dlp yt-dlp_install
+check_internet
+check_or_install ffmpeg package_install_ffmpeg 
+check_or_install yt-dlp yt-dlp_install 
 
 yt-dlp_update() {
     if yt-dlp -U; then
@@ -154,41 +170,30 @@ if ! command -v yt-dlp >/dev/null 2>&1; then
     yt-dlp_install
 fi
 
-# echo "Checking conection..."
-check_internet
-
-# validation function
 validate_url() {
-    local url="$1"
-    [ -z "$url" ] && return 1
-    local combined_regex="($YTURL|$FBURL|$IGURL|$XURL)"
-    [[ "$url" =~ $combined_regex ]]
+    if [[ "$1" =~ ^https?:// ]]; then
+        return 0  # valid
+    else
+        echo "✖ Invalid URL. Must start with http:// or https://"
+        return 1  # invalid
+    fi
 }
 
-if [ -z "$URL" ] || ! validate_url "$URL"; then
-    # Mode 2: URL tidak ada atau invalid → tampil prompt
+new_url() {
     while true; do
         read -p "Enter URL (or 'e' to Exit): " URL
         [ "$URL" = "e" ] && exit 0
+
         if validate_url "$URL"; then
-            break
-        else
-            echo "✖ Invalid URL, try again."
+            break  # keluar loop karena URL valid
         fi
     done
-fi
-
-new_url() {
-        while true; do
-        read -p "Enter new URL (or 'e' to Exit): " URL
-            [ "$URL" = "e" ] && exit 0
-            if validate_url "$URL"; then
-                break
-            else
-                echo "✖ Invalid URL, try again."
-            fi
-        done 
 }
+
+# Contoh pemakaian
+if [ -z "$URL" ]; then
+    new_url
+fi
 
 # download function
 download_file() {
@@ -235,9 +240,10 @@ download_file() {
 # videos webm func
 download_videos_webm() {
     clear
+    Asep5K
     echo "⚠ Warning: Downloading webm may fail during merge. (Not recommended)"
     while true; do
-        echo "Video Options (WEBM)"
+        echo "[Video Options (WEBM)]"
         cat << EOF
 1. 240p
 2. 360p
@@ -266,7 +272,7 @@ EOF
             8) download_file "best" "$VIDEO_DIR" "$VIDEO_NAME" "webm" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
-            e) clear; exit 0 ;;
+            e) exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -275,8 +281,9 @@ EOF
 # video mp4 func
 download_videos_mp4() {
     clear
+    Asep5K
     while true; do
-        echo "Video Options (MP4)"
+        echo "[Video Options (MP4)]"
         cat << EOF
 1. 240p
 2. 360p
@@ -305,7 +312,7 @@ EOF
             8) download_file "best" "$VIDEO_DIR" "$VIDEO_NAME" "mp4" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
-            e) clear; exit 0 ;;
+            e) exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -315,7 +322,7 @@ EOF
 music_download() {
     clear
     while true; do
-        echo "Download Music Options"
+        echo "[Download Music Options]"
         cat << EOF
 1. Mp3
 2. Flac
@@ -336,7 +343,7 @@ EOF
             4) download_file "playlistflac" "$PLAYLIST_MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "flac" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
-            e) clear; exit 0 ;;
+            e) exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -345,8 +352,9 @@ EOF
 # playlist download func
 playlist_download() {
     clear
+    Asep5K
     while true; do
-        echo "Video Playlist Options"
+        echo "[Video Playlist Options]"
         cat << EOF
 1. 240p
 2. 360p
@@ -375,7 +383,7 @@ EOF
             8) download_file "best" "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
-            e) clear; exit 0 ;;
+            e) exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -384,8 +392,9 @@ EOF
 # reels download  func
 all_platform() {
     clear
+    Asep5K
     while true; do
-        echo "Download Options"
+        echo "[Download Options]"
         cat << EOF
 1. Download Reels
 2. Download Audio
@@ -402,7 +411,7 @@ EOF
             2) download_file "audio" "$MUSIC_DIR" "$REELS_NAME" "audio" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
-            e) clear; exit 0 ;;
+            e) exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -435,8 +444,10 @@ play_select() {
 
 play() {
     clear
+    Asep5K
+    check_or_install mpv package_install_mpv
     while true; do
-        echo "Play Options"
+        echo "[Play Options]"
         cat << EOF
 1. Music
 2. 240p
@@ -467,7 +478,7 @@ EOF
             9) play_select "best" >/dev/null 2>&1 ;;
             b) clear; return ;;
             n) new_url ;;
-            e) clear; exit 0 ;;
+            e) exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac  
     done
@@ -475,14 +486,14 @@ EOF
 
 # menu func
 while true; do
-	echo "Download Options"
+	echo "[Download Options]"
     cat << EOF
-1. Download IG/FB/X Video Reels
+1. Reels / Shorts / Clips (Video & Audio)
 2. Download Video webm (⚠ Not recommended)
 3. Download Video mp4
 4. Download Video Playlist
 5. Download Music mp3/flac
-6. Play Video/Music (Linux Desktop only) 
+6. Play Video & Music (Linux Desktop only, Termux audio only)
 7. Check Download Size
 n. New url
 u. Update yt-dlp
@@ -502,7 +513,7 @@ EOF
             7) size_check ;;
             n) new_url ;;
             u) yt-dlp_update ;;
-            e) clear; exit 0 ;;
+            e) exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
 done
