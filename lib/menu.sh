@@ -127,7 +127,7 @@ EOF
 	echo ""
 
         case "$choice" in
-            1) download_file "Reels" "$REELS_DIR" "$REELS_NAME" "mp4" ;;
+            1) download_file "Reels" "$VIDEO_DIR" "$REELS_NAME" "mp4" ;;
             2) download_file "audio" "$MUSIC_DIR" "$REELS_NAME" "audio" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
