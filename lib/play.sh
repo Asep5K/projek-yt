@@ -1,3 +1,4 @@
+
 # Play video/music with mpv
 play_select() {
     if [ "$1" = "best" ]; then
@@ -12,7 +13,7 @@ play_select() {
 play() {
     clear
     Asep5K
-    check_or_install mpv package_install_mpv
+    package_install mpv
     while true; do
         echo "[Play Options]"
         cat << EOF

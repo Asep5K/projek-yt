@@ -6,7 +6,7 @@ package_install() {
         return 0
     fi
 
-    echo "⚠ $package not found, installing..."
+    echo "⚠ $package not found! installing..."
 
     if command -v pkg >/dev/null 2>&1; then
         pkg install -y "$package" 
@@ -25,12 +25,7 @@ package_install() {
     fi
 }
 
-# Wrapper functions
-package_install_ffmpeg() { package_install ffmpeg; }
-package_install_mpv() { package_install mpv; }
-
 # Install yt-dlp (latest binary from GitHub)
-
 yt-dlp_install() {
     local dir="$HOME/.local/bin"
     local name="yt-dlp"
@@ -100,15 +95,33 @@ check_or_install() {
         echo "⚠ $cmd not found! Installing..."
         $install_func
     else
-        echo "✔ $cmd is already installed"
+        echo "✔ $cmd is already installed: $(command -v "$cmd")"
     fi
 }
 
 # Update yt-dlp
 yt-dlp_update() {
+	echo "Updating, please wait..."
     if yt-dlp -U; then
         echo "✔ yt-dlp updated successfully"
     else
         echo "✖ Update failed. If you installed yt-dlp via a package manager, use that instead."
+    fi
+}
+
+# check updates
+check_updates() {
+    clear
+    echo "🔎 Checking yt-dlp updates..."
+    current=$(yt-dlp --version)
+    latest=$(curl -s https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest \
+      | grep '"tag_name":' \
+      | cut -d '"' -f4 | sed 's/^v//')
+
+    if [ "$current" != "$latest" ]; then
+        echo "Your version: $current"
+        echo "New update available: $latest"
+    else
+        echo "You have the latest version: $current"
     fi
 }

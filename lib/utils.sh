@@ -37,7 +37,7 @@ validate_url() {
 new_url() {
     while true; do
         read -p "Enter URL (or 'e' to Exit): " URL
-        [ "$URL" = "e" ] && exit 0
+        [ "$URL" = "e" ] && clear && exit 0
 
         if validate_url "$URL"; then
             break

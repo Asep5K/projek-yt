@@ -9,20 +9,21 @@ URL=$1
 # ==========================
 if [ -d "/sdcard" ]; then
     # Likely Termux / Android
-    VIDEO_DIR="/sdcard/Videos/Downloads"
-    MUSIC_DIR="/sdcard/Music/Downloads"
+    MUSIC_DIR="/sdcard/Music/%(extractor)s"
+    VIDEO_DIR="/sdcard/Videos/%(extractor)s"
+    PLAYLIST_MUSIC_DIR="/sdcard/Music/%(playlist_title)s"
+    PLAYLIST_VIDEO_DIR="/sdcard/Videos/%(playlist_title)s"
 else
     # Likely Linux Desktop
-    VIDEO_DIR="$HOME/Videos/Downloads"
-    MUSIC_DIR="$HOME/Music/Downloads"
+    MUSIC_DIR="$HOME/Music/%(extractor)s"
+    VIDEO_DIR="$HOME/Videos/%(extractor)s"
+    PLAYLIST_MUSIC_DIR="$HOME/Music/%(playlist_title)s"
+    PLAYLIST_VIDEO_DIR="$HOME/Videos/%(playlist_title)s"
 fi
 
 # Name
-MUSIC_NAME="%(artist)s - %(title)s.%(ext)s"
-PLAYLIST_MUSIC_NAME="%(playlist_index)02d - %(title)s.%(ext)s"
-PLAYLIST_MUSIC_DIR="$MUSIC_DIR/%(playlist_title)s"
-VIDEO_NAME="%(title)s_%(height)sp.%(ext)s"
-PLAYLIST_VIDEO_NAME="%(playlist)s/%(playlist_index)02d - %(title)s_%(height)s"p".%(ext)s"
-PLAYLIST_VIDEO_DIR="$VIDEO_DIR/%(playlist_title)s"
-REELS_DIR="$VIDEO_DIR/%(extractor)s"
+MUSIC_NAME="%(title)s.%(ext)s"
+VIDEO_NAME="%(title)s_%(height)s"p".%(ext)s"
 REELS_NAME="%(extractor)s_%(id)s.%(ext)s"
+PLAYLIST_MUSIC_NAME="%(playlist_index)02d_%(title)s.%(ext)s"
+PLAYLIST_VIDEO_NAME="%(playlist)s/%(playlist_index)02d_%(title)s_%(height)s"p".%(ext)s"

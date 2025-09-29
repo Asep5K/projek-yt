@@ -1,3 +1,4 @@
+
 # video mp4 func
 download_videos_mp4() {
     clear
@@ -32,7 +33,7 @@ EOF
             8) download_file "best" "$VIDEO_DIR" "$VIDEO_NAME" "mp4" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
-            e) exit 0 ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -63,7 +64,7 @@ EOF
             4) download_file "playlistflac" "$PLAYLIST_MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "flac" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
-            e) exit 0 ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -103,7 +104,7 @@ EOF
             8) download_file "best" "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
-            e) exit 0 ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -128,10 +129,10 @@ EOF
 
         case "$choice" in
             1) download_file "Reels" "$VIDEO_DIR" "$REELS_NAME" "mp4" ;;
-            2) download_file "audio" "$MUSIC_DIR" "$REELS_NAME" "audio" ;;
+            2) download_file "audio" "$MUSIC_DIR" "$REELS_NAME" "mp3" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
-            e) exit 0 ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -139,6 +140,13 @@ EOF
 
 # Main menu
 main_menu() {
+    # ==========================
+    # Init checks
+    # ==========================
+    check_internet
+    package_install ffmpeg
+    check_or_install mpv
+    check_or_install yt-dlp
     while true; do
         echo "[Download Options]"
         cat << EOF
@@ -148,8 +156,9 @@ main_menu() {
 4. Download Music mp3/flac
 5. Play Video & Music
 6. Check Download Size
-n. New url
 c. Check for yt-dlp updates
+h. Show help
+n. New url
 u. Update yt-dlp
 e. Exit
 EOF
@@ -163,10 +172,12 @@ EOF
             4) music_download ;;
             5) play ;;
             6) size_check ;;
-            n) new_url ;;
             c) check_updates ;;
+            h) clear; show_help ;;
+            n) new_url ;;
             u) yt-dlp_update ;;
-            e) exit 0 ;;
+            e) clear; exit 0 ;;
+            *) clear; Asep5K; echo "✔ Valid URL: $URL" ;;
         esac
     done
 }
