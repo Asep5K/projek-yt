@@ -9,23 +9,46 @@ URL=$1
 # ==========================
 if [ -d "/sdcard" ]; then
     # Likely Termux / Android
-    VIDEO_DIR="/sdcard/Videos/Downloads"
-    MUSIC_DIR="/sdcard/Music/Downloads"
+    MUSIC_DIR="/sdcard/Music/%(extractor)s"
+    VIDEO_DIR="/sdcard/Videos/%(extractor)s"
+    PLAYLIST_MUSIC_DIR="/sdcard/Music/%(playlist_title)s"
+    PLAYLIST_VIDEO_DIR="/sdcard/Videos/%(playlist_title)s"
 else
     # Likely Linux Desktop
-    VIDEO_DIR="$HOME/Videos/Downloads"
-    MUSIC_DIR="$HOME/Music/Downloads"
+    MUSIC_DIR="$HOME/Music/%(extractor)s"
+    VIDEO_DIR="$HOME/Videos/%(extractor)s"
+    PLAYLIST_MUSIC_DIR="$HOME/Music/%(playlist_title)s"
+    PLAYLIST_VIDEO_DIR="$HOME/Videos/%(playlist_title)s"
 fi
 
 # Name
-MUSIC_NAME="%(artist)s - %(title)s.%(ext)s"
-PLAYLIST_MUSIC_NAME="%(playlist_index)02d - %(title)s.%(ext)s"
-PLAYLIST_MUSIC_DIR="$MUSIC_DIR/%(playlist_title)s"
-VIDEO_NAME="%(title)s_%(height)sp.%(ext)s"
-PLAYLIST_VIDEO_NAME="%(playlist)s/%(playlist_index)02d - %(title)s_%(height)s"p".%(ext)s"
-PLAYLIST_VIDEO_DIR="$VIDEO_DIR/%(playlist_title)s"
-REELS_DIR="$VIDEO_DIR/%(extractor)s"
+MUSIC_NAME="%(title)s.%(ext)s"
+VIDEO_NAME="%(title)s_%(height)s"p".%(ext)s"
 REELS_NAME="%(extractor)s_%(id)s.%(ext)s"
+PLAYLIST_MUSIC_NAME="%(playlist_index)02d_%(title)s.%(ext)s"
+PLAYLIST_VIDEO_NAME="%(playlist)s/%(playlist_index)02d_%(title)s_%(height)s"p".%(ext)s"
+
+show_help() {
+  Asep5K
+    cat <<EOF
+  ${0##*/} - Simple CLI wrapper for yt-dlp with extras
+Usage:
+  ${0##*/} [OPTIONS]/[URL]
+
+Example:
+  ${0##*/} https://youtu.be/7kHxblDGbGw   # Download video/music
+  ${0##*/} -c                             # Check yt-dlp updates
+  ${0##*/} -u                             # Update yt-dlp
+
+Options:
+  -c            Check for yt-dlp updates
+  -u            Update yt-dlp
+  -h, --help    Show this help message
+
+Note:
+  If a URL is provided, it must start with http:// or https://
+EOF
+}
 
 # Banner ASCII Art
 Asep5K() {
@@ -78,7 +101,7 @@ validate_url() {
 new_url() {
     while true; do
         read -p "Enter URL (or 'e' to Exit): " URL
-        [ "$URL" = "e" ] && exit 0
+        [ "$URL" = "e" ] && clear && exit 0
 
         if validate_url "$URL"; then
             break
@@ -93,7 +116,7 @@ package_install() {
         return 0
     fi
 
-    echo "⚠ $package not found, installing..."
+    echo "⚠ $package not found! installing..."
 
     if command -v pkg >/dev/null 2>&1; then
         pkg install -y "$package" 
@@ -112,12 +135,7 @@ package_install() {
     fi
 }
 
-# Wrapper functions
-package_install_ffmpeg() { package_install ffmpeg; }
-package_install_mpv() { package_install mpv; }
-
 # Install yt-dlp (latest binary from GitHub)
-
 yt-dlp_install() {
     local dir="$HOME/.local/bin"
     local name="yt-dlp"
@@ -187,51 +205,76 @@ check_or_install() {
         echo "⚠ $cmd not found! Installing..."
         $install_func
     else
-        echo "✔ $cmd is already installed"
+        echo "✔ $cmd is already installed: $(command -v "$cmd")"
     fi
 }
 
 # Update yt-dlp
 yt-dlp_update() {
+	echo "Updating, please wait..."
     if yt-dlp -U; then
         echo "✔ yt-dlp updated successfully"
     else
         echo "✖ Update failed. If you installed yt-dlp via a package manager, use that instead."
     fi
 }
+
+# check updates
+check_updates() {
+    clear
+    echo "🔎 Checking yt-dlp updates..."
+    current=$(yt-dlp --version)
+    latest=$(curl -s https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest \
+      | grep '"tag_name":' \
+      | cut -d '"' -f4 | sed 's/^v//')
+
+    if [ "$current" != "$latest" ]; then
+        echo "Your version: $current"
+        echo "New update available: $latest"
+    else
+        echo "You have the latest version: $current"
+    fi
+}
+
 # General download function
 download_file() {
+    clear
+    Asep5K
     local type="$1"
     local outdir="$2"
     local name="$3"
     local format="$4"
-    local extra_opts="--restrict-filenames --embed-metadata --embed-thumbnail"
-
+    local extra_opts='-c --no-warnings --convert-thumbnails none --extractor-retries infinite --restrict-filenames --embed-metadata --embed-thumbnail --exec'
+   
     echo "Downloading $type... Please wait..."
 
     if [ "$format" = "flac" ]; then
         yt-dlp -x --audio-format flac --audio-quality 0 \
-        --restrict-filenames --embed-thumbnail -o "$outdir/$name" "$URL"
+          --restrict-filenames --exec 'f="{}"; g="${f//_-_/_}"; [ "$f" = "$g" ] || mv "$f" "$g"' \
+          -o "$outdir/$name" "$URL"
 
-    elif [ "$format" = "mp3" ] || [ "$format" = "audio" ]; then
-        yt-dlp -t mp3 --audio-quality 0 \
-        $extra_opts -o "$outdir/$name" "$URL" 
+    elif [ "$format" = "mp3" ]; then
+        yt-dlp -t mp3 $extra_opts 'f="{}"; g="${f//_-_/_}"; [ "$f" = "$g" ] || mv "$f" "$g"' \
+        --audio-quality 0 -o "$outdir/$name" "$URL" 
 
     elif [ "$format" = "mp4" ]; then
         if [ "$type" = "best" ] || [ "$type" = "Reels" ]; then
             yt-dlp -f "bv[vcodec^=avc1]+bestaudio / bv[vcodec^=av01]+bestaudio / best" \
-            -t "$format" $extra_opts -o "$outdir/$name" "$URL"
+            -t "$format" $extra_opts 'f="{}"; g="${f//_-_/_}"; [ "$f" = "$g" ] || mv "$f" "$g"' \
+            -o "$outdir/$name" "$URL" 
         
         else
             yt-dlp -f "bv[height<=$type][vcodec^=avc1]+bestaudio / bv[height<=$type][vcodec^=av01]+bestaudio" \
-                -t "$format" $extra_opts -o "$outdir/$name" "$URL"
+            -t "$format" $extra_opts 'f="{}"; g="${f//_-_/_}"; [ "$f" = "$g" ] || mv "$f" "$g"' \
+            -o "$outdir/$name" "$URL"
         fi
     else
         echo "✖ Unknown format $format"
     fi
 
     if [ $? -eq 0 ]; then
-        echo "✔ Download finished."
+        # clear
+        echo "✔ Download finished." 
     else
         echo "✖ Download Failed. Check the URL or network."
     fi
@@ -243,6 +286,7 @@ size_check() {
     Asep5K
     yt-dlp -F "$URL"
 }
+
 # Play video/music with mpv
 play_select() {
     if [ "$1" = "best" ]; then
@@ -257,7 +301,7 @@ play_select() {
 play() {
     clear
     Asep5K
-    check_or_install mpv package_install_mpv
+    package_install mpv
     while true; do
         echo "[Play Options]"
         cat << EOF
@@ -293,6 +337,7 @@ EOF
         esac  
     done
 }
+
 # video mp4 func
 download_videos_mp4() {
     clear
@@ -327,7 +372,7 @@ EOF
             8) download_file "best" "$VIDEO_DIR" "$VIDEO_NAME" "mp4" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
-            e) exit 0 ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -358,7 +403,7 @@ EOF
             4) download_file "playlistflac" "$PLAYLIST_MUSIC_DIR" "$PLAYLIST_MUSIC_NAME" "flac" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
-            e) exit 0 ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -398,7 +443,7 @@ EOF
             8) download_file "best" "$PLAYLIST_VIDEO_DIR" "$PLAYLIST_VIDEO_NAME" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
-            e) exit 0 ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -422,11 +467,11 @@ EOF
 	echo ""
 
         case "$choice" in
-            1) download_file "Reels" "$REELS_DIR" "$REELS_NAME" "mp4" ;;
-            2) download_file "audio" "$MUSIC_DIR" "$REELS_NAME" "audio" ;;
+            1) download_file "Reels" "$VIDEO_DIR" "$REELS_NAME" "mp4" ;;
+            2) download_file "audio" "$MUSIC_DIR" "$REELS_NAME" "mp3" ;;
             b) clear; return ;;  # Back
             n) new_url ;;
-            e) exit 0 ;;
+            e) clear; exit 0 ;;
             *) echo "Invalid choice, try again!" ;;
         esac
     done
@@ -434,6 +479,13 @@ EOF
 
 # Main menu
 main_menu() {
+    # ==========================
+    # Init checks
+    # ==========================
+    check_internet
+    package_install ffmpeg
+    check_or_install mpv
+    check_or_install yt-dlp
     while true; do
         echo "[Download Options]"
         cat << EOF
@@ -443,8 +495,9 @@ main_menu() {
 4. Download Music mp3/flac
 5. Play Video & Music
 6. Check Download Size
-n. New url
 c. Check for yt-dlp updates
+h. Show help
+n. New url
 u. Update yt-dlp
 e. Exit
 EOF
@@ -458,13 +511,16 @@ EOF
             4) music_download ;;
             5) play ;;
             6) size_check ;;
-            n) new_url ;;
             c) check_updates ;;
+            h) clear; show_help ;;
+            n) new_url ;;
             u) yt-dlp_update ;;
-            e) exit 0 ;;
+            e) clear; exit 0 ;;
+            *) clear; Asep5K; echo "✔ Valid URL: $URL" ;;
         esac
     done
 }
+
 # ==========================
 # Banner
 # ==========================
@@ -479,17 +535,23 @@ EOF
 exit 0' EXIT
 
 # ==========================
-# Init checks
-# ==========================
-check_internet
-check_or_install ffmpeg package_install_ffmpeg 
-check_or_install yt-dlp yt-dlp_install 
-
-# ==========================
 # URL Input
 # ==========================
 if [ -z "$URL" ]; then
     new_url
+else
+    case $URL in
+      -c) check_updates && exit 0 ;;
+      -u) yt-dlp_update && exit 0 ;;
+      -h|--help) show_help && exit 0 ;;
+      *)
+        if validate_url "$URL"; then
+            echo "✔ Valid URL: $URL"
+        else
+            new_url
+        fi
+        ;;
+    esac
 fi
 
 # ==========================
