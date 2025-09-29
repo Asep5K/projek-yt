@@ -4,12 +4,13 @@ set -euo pipefail
 OUTPUT="yt-cli.sh"
 SRC=(
   lib/variable.sh
+  lib/help.sh
   lib/ascii.sh
   lib/utils.sh
   lib/install.sh
   lib/download.sh
   lib/play.sh
-  lib/menus.sh
+  lib/menu.sh
   lib/main.sh
 )
 
